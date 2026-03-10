@@ -5,3 +5,5 @@ export { useKanbanConfigStore } from './kanbanConfigStore';
 export { useKanbanBoardStore } from './kanbanBoardStore';
 export { useThemeStore } from './themeStore';
 export { useAuthStore } from './authStore';
+export { useSettingsStore } from './settingsStore';
+export { useDocumentStore } from './documentStore';
