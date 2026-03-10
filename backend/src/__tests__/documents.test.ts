@@ -35,8 +35,8 @@ describe('Documents API', () => {
   describe('GET /api/documents', () => {
     it('should return all documents for the user', async () => {
       const mockDocs = [
-        { id: 'doc-1', title: 'Test Doc', content: '# Hello', owner_id: userId, project_id: null, created_at: new Date(), updated_at: new Date() },
-        { id: 'doc-2', title: 'Another Doc', content: 'Content', owner_id: userId, project_id: null, created_at: new Date(), updated_at: new Date() },
+        { id: 'doc-1', title: 'Test Doc', content: '# Hello', owner_id: userId, project_id: null, folder_id: null, created_at: new Date(), updated_at: new Date() },
+        { id: 'doc-2', title: 'Another Doc', content: 'Content', owner_id: userId, project_id: null, folder_id: null, created_at: new Date(), updated_at: new Date() },
       ];
 
       mockDocumentModel.findAll.mockResolvedValue(mockDocs);
@@ -64,7 +64,7 @@ describe('Documents API', () => {
         title: 'New Document',
         content: '',
         owner_id: userId,
-        project_id: null,
+        project_id: null, folder_id: null,
         created_at: new Date(),
         updated_at: new Date(),
       };
@@ -99,7 +99,7 @@ describe('Documents API', () => {
         title: 'Test',
         content: 'Content',
         owner_id: userId,
-        project_id: null,
+        project_id: null, folder_id: null,
         created_at: new Date(),
         updated_at: new Date(),
       };
@@ -136,7 +136,7 @@ describe('Documents API', () => {
         title: 'Updated Title',
         content: 'Updated content',
         owner_id: userId,
-        project_id: null,
+        project_id: null, folder_id: null,
         created_at: new Date(),
         updated_at: new Date(),
       };
@@ -241,7 +241,7 @@ describe('Documents API', () => {
         title: 'Shared Doc',
         content: '',
         owner_id: 'other-user',
-        project_id: null,
+        project_id: null, folder_id: null,
         created_at: new Date(),
         updated_at: new Date(),
       };
@@ -269,6 +269,90 @@ describe('Documents API', () => {
 
       const res = await request(app)
         .post('/api/documents/invites/expired-token/accept')
+        .set(authHeader);
+
+      expect(res.status).toBe(404);
+    });
+  });
+
+  // Test 8: Folder operations
+  describe('Document Folders', () => {
+    it('should list folders for the user', async () => {
+      const mockFolders = [
+        { id: 'folder-1', name: 'My Folder', parent_id: null, user_id: userId, created_at: new Date() },
+      ];
+      mockDocumentModel.getFolders.mockResolvedValue(mockFolders);
+
+      const res = await request(app)
+        .get('/api/documents/folders')
+        .set(authHeader);
+
+      expect(res.status).toBe(200);
+      expect(res.body).toHaveLength(1);
+      expect(res.body[0].name).toBe('My Folder');
+    });
+
+    it('should create a folder', async () => {
+      const mockFolder = {
+        id: 'folder-new',
+        name: 'New Folder',
+        parent_id: null,
+        user_id: userId,
+        created_at: new Date(),
+      };
+      mockDocumentModel.createFolder.mockResolvedValue(mockFolder);
+
+      const res = await request(app)
+        .post('/api/documents/folders')
+        .set(authHeader)
+        .send({ name: 'New Folder' });
+
+      expect(res.status).toBe(201);
+      expect(res.body.name).toBe('New Folder');
+    });
+
+    it('should reject folder creation without name', async () => {
+      const res = await request(app)
+        .post('/api/documents/folders')
+        .set(authHeader)
+        .send({});
+
+      expect(res.status).toBe(400);
+    });
+
+    it('should update a folder', async () => {
+      const mockFolder = { id: 'folder-1', name: 'Old Name', parent_id: null, user_id: userId, created_at: new Date() };
+      const updatedFolder = { ...mockFolder, name: 'Updated Name' };
+      mockDocumentModel.getFolderById.mockResolvedValue(mockFolder);
+      mockDocumentModel.updateFolder.mockResolvedValue(updatedFolder);
+
+      const res = await request(app)
+        .put('/api/documents/folders/folder-1')
+        .set(authHeader)
+        .send({ name: 'Updated Name' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.name).toBe('Updated Name');
+    });
+
+    it('should delete a folder', async () => {
+      const mockFolder = { id: 'folder-1', name: 'Delete Me', parent_id: null, user_id: userId, created_at: new Date() };
+      mockDocumentModel.getFolderById.mockResolvedValue(mockFolder);
+      mockDocumentModel.deleteFolder.mockResolvedValue(true);
+
+      const res = await request(app)
+        .delete('/api/documents/folders/folder-1')
+        .set(authHeader);
+
+      expect(res.status).toBe(200);
+    });
+
+    it('should reject folder delete for non-owner', async () => {
+      const mockFolder = { id: 'folder-1', name: 'Not Mine', parent_id: null, user_id: 'other-user-id', created_at: new Date() };
+      mockDocumentModel.getFolderById.mockResolvedValue(mockFolder);
+
+      const res = await request(app)
+        .delete('/api/documents/folders/folder-1')
         .set(authHeader);
 
       expect(res.status).toBe(404);
