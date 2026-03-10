@@ -3,8 +3,28 @@ import bcrypt from 'bcryptjs';
 import { AuthRequest } from '../middleware/auth';
 import { UserSettingsModel } from '../models/userSettings';
 import { UserModel } from '../models/user';
+import pool from '../config/database';
 
 export const UserSettingsController = {
+  async searchUsers(req: AuthRequest, res: Response) {
+    try {
+      if (!req.userId) return res.status(401).json({ error: 'Not authenticated.' });
+      const query = (req.query.q as string || '').trim();
+      if (query.length < 2) return res.json([]);
+
+      const result = await pool.query(
+        `SELECT id, username, email FROM users
+         WHERE id != $1 AND (username ILIKE $2 OR email ILIKE $2)
+         ORDER BY username LIMIT 10`,
+        [req.userId, `%${query}%`]
+      );
+      res.json(result.rows);
+    } catch (error) {
+      console.error('Error searching users:', error);
+      res.status(500).json({ error: 'Failed to search users.' });
+    }
+  },
+
   async getSettings(req: AuthRequest, res: Response) {
     try {
       if (!req.userId) return res.status(401).json({ error: 'Not authenticated.' });
