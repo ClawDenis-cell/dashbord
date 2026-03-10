@@ -104,6 +104,10 @@ function buildHtmlDocument(title: string, contentHtml: string): string {
     month: 'long', 
     day: 'numeric' 
   });
+  const exportTime = new Date().toLocaleTimeString('de-DE', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
   
   return `<!DOCTYPE html>
 <html lang="de">
@@ -113,215 +117,280 @@ function buildHtmlDocument(title: string, contentHtml: string): string {
   <title>${title}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
     @page {
-      margin: 15mm 12mm 20mm 12mm;
-      @bottom-center {
-        content: counter(page) " / " counter(pages);
-        font-family: 'Inter', sans-serif;
-        font-size: 9pt;
-        color: #9ca3af;
-      }
+      size: A4;
+      margin: 20mm 15mm 25mm 15mm;
     }
     
     * {
       box-sizing: border-box;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
     }
     
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       font-size: 11pt;
-      line-height: 1.6;
-      color: #1f2937;
+      line-height: 1.7;
+      color: #0f172a;
       background: #ffffff;
       margin: 0;
       padding: 0;
+      font-feature-settings: 'liga' 1, 'kern' 1;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
     }
     
-    .header {
-      border-bottom: 2px solid #3b82f6;
-      padding-bottom: 15px;
-      margin-bottom: 30px;
+    /* Document header */
+    .doc-header {
+      margin-bottom: 35px;
+      padding-bottom: 20px;
+      border-bottom: 2.5px solid #3b82f6;
+      page-break-after: avoid;
     }
     
-    .header h1 {
-      font-size: 24pt;
+    .doc-header h1 {
+      font-size: 26pt;
       font-weight: 700;
-      color: #111827;
-      margin: 0 0 8px 0;
-      line-height: 1.3;
+      color: #0f172a;
+      margin: 0 0 10px 0;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
     }
     
-    .header-meta {
-      font-size: 9pt;
-      color: #6b7280;
+    .doc-header-meta {
+      display: flex;
+      gap: 20px;
+      font-size: 9.5pt;
+      color: #64748b;
+      font-weight: 400;
     }
     
+    .doc-header-meta span {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    
+    /* Content area */
     .content {
-      max-width: 100%;
+      max-width: none;
     }
     
+    /* Headings */
     .content h1 {
-      font-size: 18pt;
-      font-weight: 600;
-      color: #111827;
-      margin: 30px 0 15px 0;
-      padding-bottom: 8px;
-      border-bottom: 1px solid #e5e7eb;
+      font-size: 20pt;
+      font-weight: 700;
+      color: #0f172a;
+      margin: 35px 0 16px 0;
+      padding-bottom: 10px;
+      border-bottom: 1.5px solid #e2e8f0;
+      letter-spacing: -0.01em;
+      page-break-after: avoid;
     }
     
     .content h2 {
-      font-size: 14pt;
+      font-size: 16pt;
       font-weight: 600;
-      color: #1f2937;
-      margin: 25px 0 12px 0;
+      color: #1e293b;
+      margin: 28px 0 14px 0;
+      letter-spacing: -0.01em;
+      page-break-after: avoid;
     }
     
     .content h3 {
-      font-size: 12pt;
+      font-size: 13pt;
       font-weight: 600;
-      color: #374151;
-      margin: 20px 0 10px 0;
+      color: #334155;
+      margin: 22px 0 10px 0;
+      page-break-after: avoid;
     }
     
+    /* Paragraphs */
     .content p {
-      margin: 10px 0;
-      text-align: justify;
+      margin: 12px 0;
+      orphans: 3;
+      widows: 3;
     }
     
+    /* Links */
+    .content a {
+      color: #2563eb;
+      text-decoration: none;
+      border-bottom: 1px solid #93c5fd;
+    }
+    
+    /* Code blocks */
     .content pre {
       background: #f8fafc;
       border: 1px solid #e2e8f0;
+      border-left: 3px solid #3b82f6;
       border-radius: 6px;
-      padding: 12px 16px;
-      overflow-x: auto;
-      font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+      padding: 14px 18px;
+      overflow-x: visible;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace;
       font-size: 9pt;
-      line-height: 1.5;
-      margin: 15px 0;
+      line-height: 1.6;
+      margin: 18px 0;
       page-break-inside: avoid;
+      color: #334155;
     }
     
     .content code {
-      font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+      font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace;
       font-size: 9pt;
       background: #f1f5f9;
       padding: 2px 6px;
       border-radius: 4px;
       color: #334155;
+      border: 1px solid #e2e8f0;
     }
     
     .content pre code {
       background: none;
       padding: 0;
+      border: none;
+      font-size: inherit;
     }
     
+    /* Blockquotes */
     .content blockquote {
       border-left: 4px solid #3b82f6;
-      margin: 15px 0;
-      padding: 12px 20px;
-      background: #f8fafc;
-      color: #4b5563;
+      margin: 18px 0;
+      padding: 14px 22px;
+      background: #f0f9ff;
+      color: #475569;
       font-style: italic;
+      border-radius: 0 6px 6px 0;
       page-break-inside: avoid;
     }
     
-    .content a {
-      color: #2563eb;
-      text-decoration: none;
+    .content blockquote p {
+      margin: 6px 0;
     }
     
-    .content a:hover {
-      text-decoration: underline;
-    }
-    
+    /* Images */
     .content img {
       max-width: 100%;
       height: auto;
-      border-radius: 6px;
-      margin: 15px 0;
+      border-radius: 8px;
+      margin: 18px 0;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
       page-break-inside: avoid;
     }
     
+    /* Horizontal rules */
     .content hr {
       border: none;
-      border-top: 1px solid #e5e7eb;
-      margin: 25px 0;
+      border-top: 1.5px solid #e2e8f0;
+      margin: 30px 0;
     }
     
+    /* Lists */
     .content ul, .content ol {
-      margin: 10px 0;
-      padding-left: 25px;
+      margin: 12px 0;
+      padding-left: 28px;
     }
     
     .content li {
-      margin: 5px 0;
+      margin: 6px 0;
+      line-height: 1.6;
+    }
+    
+    .content li > ul, .content li > ol {
+      margin: 4px 0;
     }
     
     .content li.task {
       list-style: none;
-      margin-left: -25px;
-      padding-left: 25px;
+      margin-left: -28px;
+      padding-left: 28px;
+      position: relative;
     }
     
     .content li.task::before {
-      content: "☐ ";
-      margin-right: 5px;
-      color: #6b7280;
+      content: "\\2610";
+      position: absolute;
+      left: 0;
+      color: #94a3b8;
+      font-size: 12pt;
     }
     
     .content li.task.done::before {
-      content: "☑ ";
+      content: "\\2611";
       color: #22c55e;
     }
     
+    /* Strikethrough */
     .content del {
-      color: #9ca3af;
+      color: #94a3b8;
+      text-decoration: line-through;
     }
     
+    /* Tables */
     .content table {
       width: 100%;
       border-collapse: collapse;
-      margin: 15px 0;
+      margin: 18px 0;
       font-size: 10pt;
       page-break-inside: avoid;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      overflow: hidden;
     }
     
-    .content th, .content td {
-      border: 1px solid #e5e7eb;
-      padding: 8px 12px;
-      text-align: left;
+    .content thead {
+      background: #f1f5f9;
     }
     
     .content th {
-      background: #f9fafb;
+      border: 1px solid #e2e8f0;
+      padding: 10px 14px;
+      text-align: left;
       font-weight: 600;
-      color: #374151;
+      color: #1e293b;
+      font-size: 9.5pt;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
     }
     
-    .footer {
-      margin-top: 40px;
-      padding-top: 15px;
-      border-top: 1px solid #e5e7eb;
-      font-size: 8pt;
-      color: #9ca3af;
-      text-align: center;
+    .content td {
+      border: 1px solid #e2e8f0;
+      padding: 9px 14px;
+      text-align: left;
+      color: #334155;
+    }
+    
+    .content tbody tr:nth-child(even) {
+      background: #f8fafc;
+    }
+    
+    /* Strong & emphasis */
+    .content strong {
+      font-weight: 600;
+      color: #0f172a;
+    }
+    
+    .content em {
+      font-style: italic;
     }
   </style>
 </head>
 <body>
-  <div class="header">
+  <div class="doc-header">
     <h1>${title}</h1>
-    <div class="header-meta">Exportiert am ${exportDate}</div>
+    <div class="doc-header-meta">
+      <span>Exportiert am ${exportDate} um ${exportTime}</span>
+    </div>
   </div>
   
   <div class="content">
     ${contentHtml}
-  </div>
-  
-  <div class="footer">
-    Erstellt mit Dashboard Markdown Editor
   </div>
 </body>
 </html>`;
@@ -678,6 +747,12 @@ export const DocumentController = {
       const contentHtml = markdownToHtml(doc.content);
       const htmlContent = buildHtmlDocument(doc.title, contentHtml);
 
+      const exportDate = new Date().toLocaleDateString('de-DE', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      });
+
       const browser = await puppeteer.launch({
         headless: true,
         args: [
@@ -687,33 +762,69 @@ export const DocumentController = {
           '--disable-gpu',
           '--disable-web-security',
           '--disable-features=IsolateOrigins,site-per-process',
+          '--font-render-hinting=none',
         ],
         executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
       });
 
       const page = await browser.newPage();
 
-      // Set viewport for better rendering
+      // High-DPI viewport for sharp text rendering
       await page.setViewport({
         width: 1200,
         height: 1600,
         deviceScaleFactor: 2,
       });
 
-      // Wait for fonts to load
+      // Load content and wait for network + DOM
       await page.setContent(htmlContent, {
         waitUntil: ['networkidle0', 'domcontentloaded'],
         timeout: 30000,
       });
 
-      // Wait a bit for fonts to render
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Explicitly wait for Google Fonts to finish loading
+      await page.evaluate('document.fonts.ready');
+
+      // Small extra delay for font rendering to settle
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      // Shared font stack for header/footer templates
+      const templateFontStyle = `
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        font-size: 8.5px;
+        color: #94a3b8;
+        width: 100%;
+        padding: 0 15mm;
+      `;
+
+      const headerTemplate = `
+        <div style="${templateFontStyle} display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-weight: 500; color: #64748b;">${doc.title.replace(/"/g, '&quot;')}</span>
+          <span>${exportDate}</span>
+        </div>
+      `;
+
+      const footerTemplate = `
+        <div style="${templateFontStyle} display: flex; justify-content: space-between; align-items: center;">
+          <span>Erstellt mit Dashboard</span>
+          <span>Seite <span class="pageNumber"></span> / <span class="totalPages"></span></span>
+        </div>
+      `;
 
       const pdfBuffer = await page.pdf({
         format: 'A4',
         printBackground: true,
-        preferCSSPageSize: true,
-        scale: 1.5,
+        preferCSSPageSize: false,
+        scale: 1,
+        displayHeaderFooter: true,
+        headerTemplate,
+        footerTemplate,
+        margin: {
+          top: '20mm',
+          right: '15mm',
+          bottom: '25mm',
+          left: '15mm',
+        },
       });
 
       await browser.close();
