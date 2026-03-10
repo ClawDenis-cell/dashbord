@@ -1,9 +1,9 @@
-import React, { useEffect } from 'react';
-import { useTodoStore } from '../../store';
-import { TodoItem } from '../../components/todos/TodoItem';
-import { TodoForm } from '../../components/todos/TodoForm';
+import { useEffect } from 'react';
+import { useTodoStore } from '../store';
+import { TodoItem } from '../components/todos/TodoItem';
+import { TodoForm } from '../components/todos/TodoForm';
 
-export const TodosPage: React.FC = () => {
+export const TodosPage = () => {
   const { todos, fetchTodos } = useTodoStore();
 
   useEffect(() => {

@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import type React from 'react';
+import { useState } from 'react';
 import { Ticket } from '../../types';
 import { TicketCard } from './TicketCard';
-import { useTicketStore } from '../../store';
 
 interface KanbanColumnProps {
   name: string;

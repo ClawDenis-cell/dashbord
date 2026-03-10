@@ -12,7 +12,7 @@ interface KanbanConfigState {
   setDefaultColumns: (columns: string[]) => void;
 }
 
-export const useKanbanConfigStore = create<KanbanConfigState>((set, get) => ({
+export const useKanbanConfigStore = create<KanbanConfigState>((set) => ({
   config: null,
   defaultColumns: ['To Do', 'In Progress', 'Done'],
   loading: false,

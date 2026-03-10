@@ -1,11 +1,10 @@
-import React, { useEffect } from 'react';
-import { useProjectStore } from '../../store';
-import { ProjectCard, ProjectForm } from '../../components/projects/ProjectCard';
-import { Button } from '../../components/common/Button';
-import { Project } from '../../types';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useProjectStore } from '../store';
+import { ProjectCard, ProjectForm } from '../components/projects/ProjectCard';
+import { Button } from '../components/common/Button';
+import { Project } from '../types';
 
-export const ProjectsPage: React.FC = () => {
+export const ProjectsPage = () => {
   const { projects, fetchProjects, createProject, updateProject, deleteProject } = useProjectStore();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);

@@ -1,4 +1,3 @@
-import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { Navigation } from './components/common/Navigation';
 import { KanbanPage } from './pages/KanbanPage';

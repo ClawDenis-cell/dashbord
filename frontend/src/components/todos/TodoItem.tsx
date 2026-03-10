@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import type React from 'react';
 import { Todo } from '../../types';
 import { useTodoStore } from '../../store';
 
@@ -8,7 +8,6 @@ interface TodoItemProps {
 
 export const TodoItem: React.FC<TodoItemProps> = ({ todo }) => {
   const { toggleTodo, deleteTodo } = useTodoStore();
-  const [isEditing, setIsEditing] = useState(false);
 
   return (
     <div className="flex items-center justify-between p-3 bg-white rounded shadow-sm border border-gray-200">

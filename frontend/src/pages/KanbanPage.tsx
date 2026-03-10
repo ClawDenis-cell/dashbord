@@ -1,7 +1,6 @@
-import React from 'react';
-import { KanbanBoard } from '../../components/kanban/KanbanBoard';
+import { KanbanBoard } from '../components/kanban/KanbanBoard';
 
-export const KanbanPage: React.FC = () => {
+export const KanbanPage = () => {
   return (
     <div className="h-full">
       <KanbanBoard />
