@@ -1,8 +1,18 @@
 -- Dashboard Database Schema
--- Tables: projects, tickets, todos, kanban_config
+-- Tables: users, projects, tickets, todos, kanban_config
 
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- Users table
+CREATE TABLE IF NOT EXISTS users (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    username VARCHAR(100) NOT NULL UNIQUE,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
 
 -- Projects table
 CREATE TABLE IF NOT EXISTS projects (
@@ -56,6 +66,12 @@ END;
 $$ language 'plpgsql';
 
 -- Attach triggers to tables
+DROP TRIGGER IF EXISTS update_users_updated_at ON users;
+CREATE TRIGGER update_users_updated_at
+    BEFORE UPDATE ON users
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
 DROP TRIGGER IF EXISTS update_projects_updated_at ON projects;
 CREATE TRIGGER update_projects_updated_at
     BEFORE UPDATE ON projects
@@ -86,7 +102,9 @@ VALUES ('Main Board', ARRAY['To Do', 'In Progress', 'Done'])
 ON CONFLICT DO NOTHING;
 
 -- Create indexes for common queries
-CREATE INDEX idx_tickets_project_id ON tickets(project_id);
-CREATE INDEX idx_tickets_status ON tickets(status);
-CREATE INDEX idx_tickets_column_name ON tickets(column_name);
-CREATE INDEX idx_todos_completed ON todos(completed);
+CREATE INDEX IF NOT EXISTS idx_tickets_project_id ON tickets(project_id);
+CREATE INDEX IF NOT EXISTS idx_tickets_status ON tickets(status);
+CREATE INDEX IF NOT EXISTS idx_tickets_column_name ON tickets(column_name);
+CREATE INDEX IF NOT EXISTS idx_todos_completed ON todos(completed);
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);

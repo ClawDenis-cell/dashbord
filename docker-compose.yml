@@ -32,6 +32,7 @@ services:
       DB_USER: ${POSTGRES_USER:-admin}
       DB_PASSWORD: ${POSTGRES_PASSWORD:-secret}
       DB_NAME: ${POSTGRES_DB:-dashboard}
+      JWT_SECRET: ${JWT_SECRET:-super-secret-jwt-key-change-in-production}
     ports:
       - "3001:3001"
     depends_on:
