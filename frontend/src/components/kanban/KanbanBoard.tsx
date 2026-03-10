@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import { useTicketStore, useKanbanConfigStore } from '../../store';
 import { useProjectStore } from '../../store';
 import { Ticket } from '../../types';
@@ -41,26 +42,39 @@ export const KanbanBoard: React.FC = () => {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-bold">Kanban Board</h2>
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex justify-between items-center mb-6"
+      >
+        <h2 className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
+          Kanban Board
+        </h2>
         <div className="flex gap-2">
           <Button variant="secondary" onClick={() => setIsConfigOpen(true)}>
-            Configure Columns
+            Configure
           </Button>
           <Button onClick={handleCreateTicket}>Add Ticket</Button>
         </div>
-      </div>
+      </motion.div>
 
-      <div className="flex-1 overflow-x-auto">
+      <div className="flex-1 overflow-x-auto pb-4">
         <div className="flex gap-4 h-full min-w-max">
-          {defaultColumns.map((column) => (
-            <KanbanColumn
+          {defaultColumns.map((column, index) => (
+            <motion.div
               key={column}
-              name={column}
-              tickets={getTicketsByColumn(column)}
-              onDrop={handleDrop}
-              onEditTicket={handleEditTicket}
-            />
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+              className="flex-1 min-w-[280px]"
+            >
+              <KanbanColumn
+                name={column}
+                tickets={getTicketsByColumn(column)}
+                onDrop={handleDrop}
+                onEditTicket={handleEditTicket}
+              />
+            </motion.div>
           ))}
         </div>
       </div>

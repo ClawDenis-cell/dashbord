@@ -48,7 +48,7 @@ export const ColumnConfigModal: React.FC<ColumnConfigModalProps> = ({ isOpen, on
             value={newColumn}
             onChange={(e) => setNewColumn(e.target.value)}
             placeholder="New column name"
-            className="flex-1 px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="input-field flex-1"
             onKeyPress={(e) => e.key === 'Enter' && handleAddColumn()}
           />
           <Button onClick={handleAddColumn} size="sm">
@@ -58,28 +58,35 @@ export const ColumnConfigModal: React.FC<ColumnConfigModalProps> = ({ isOpen, on
 
         <div className="space-y-2">
           {columns.map((column, index) => (
-            <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
-              <span>{column}</span>
+            <div
+              key={index}
+              className="flex items-center justify-between p-2.5 rounded-lg"
+              style={{ background: 'var(--color-bg-tertiary)' }}
+            >
+              <span className="text-sm" style={{ color: 'var(--color-text-primary)' }}>{column}</span>
               <div className="flex gap-1">
                 <button
                   onClick={() => handleMoveColumn(index, 'up')}
                   disabled={index === 0}
-                  className="text-gray-600 hover:text-gray-800 disabled:opacity-30"
+                  className="px-1.5 rounded transition-colors disabled:opacity-30"
+                  style={{ color: 'var(--color-text-secondary)' }}
                 >
-                  ↑
+                  ^
                 </button>
                 <button
                   onClick={() => handleMoveColumn(index, 'down')}
                   disabled={index === columns.length - 1}
-                  className="text-gray-600 hover:text-gray-800 disabled:opacity-30"
+                  className="px-1.5 rounded transition-colors disabled:opacity-30"
+                  style={{ color: 'var(--color-text-secondary)' }}
                 >
-                  ↓
+                  v
                 </button>
                 <button
                   onClick={() => handleRemoveColumn(index)}
-                  className="text-red-600 hover:text-red-800 ml-2"
+                  className="px-1.5 ml-1 rounded transition-colors"
+                  style={{ color: '#f87171' }}
                 >
-                  ×
+                  x
                 </button>
               </div>
             </div>

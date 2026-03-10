@@ -38,15 +38,27 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
 
   return (
     <div
-      className={`flex-1 min-w-[250px] bg-gray-100 rounded-lg p-4 ${
-        isDragOver ? 'bg-blue-50 border-2 border-blue-300' : ''
-      }`}
+      className="glass-card p-4 h-full transition-all duration-200"
+      style={{
+        borderColor: isDragOver ? 'var(--color-accent)' : undefined,
+        boxShadow: isDragOver ? '0 0 0 2px rgba(139, 92, 246, 0.3)' : undefined,
+      }}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
-      <h3 className="font-semibold text-gray-700 mb-3">{name} ({tickets.length})</h3>
-      <div className="space-y-2">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-semibold text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+          {name}
+        </h3>
+        <span
+          className="text-xs px-2 py-0.5 rounded-full font-medium"
+          style={{ background: 'var(--color-bg-tertiary)', color: 'var(--color-text-secondary)' }}
+        >
+          {tickets.length}
+        </span>
+      </div>
+      <div className="space-y-3">
         {tickets.map((ticket) => (
           <div
             key={ticket.id}

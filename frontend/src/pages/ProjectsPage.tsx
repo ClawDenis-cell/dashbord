@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import { useProjectStore } from '../store';
 import { ProjectCard, ProjectForm } from '../components/projects/ProjectCard';
 import { Button } from '../components/common/Button';
@@ -33,19 +34,29 @@ export const ProjectsPage = () => {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold">Projects</h2>
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex justify-between items-center mb-6"
+      >
+        <h2 className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>Projects</h2>
         <Button onClick={handleCreate}>Create Project</Button>
-      </div>
+      </motion.div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {projects.map((project) => (
-          <ProjectCard
+        {projects.map((project, index) => (
+          <motion.div
             key={project.id}
-            project={project}
-            onEdit={handleEdit}
-            onDelete={deleteProject}
-          />
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.05 }}
+          >
+            <ProjectCard
+              project={project}
+              onEdit={handleEdit}
+              onDelete={deleteProject}
+            />
+          </motion.div>
         ))}
       </div>
 

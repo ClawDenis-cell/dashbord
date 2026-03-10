@@ -78,11 +78,13 @@ export const TicketForm: React.FC<TicketFormProps> = ({
           rows={3}
         />
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Project</label>
+          <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>
+            Project
+          </label>
           <select
             value={projectId}
             onChange={(e) => setProjectId(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="input-field"
           >
             <option value="">No Project</option>
             {projects.map((project) => (
@@ -93,11 +95,13 @@ export const TicketForm: React.FC<TicketFormProps> = ({
           </select>
         </div>
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+          <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>
+            Priority
+          </label>
           <select
             value={priority}
             onChange={(e) => setPriority(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="input-field"
           >
             <option value="low">Low</option>
             <option value="medium">Medium</option>
@@ -105,12 +109,14 @@ export const TicketForm: React.FC<TicketFormProps> = ({
           </select>
         </div>
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Column</label>
+          <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>
+            Column
+          </label>
           <input
             type="text"
             value={columnName}
             onChange={(e) => setColumnName(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="input-field"
           />
         </div>
         <div className="flex justify-end gap-2">

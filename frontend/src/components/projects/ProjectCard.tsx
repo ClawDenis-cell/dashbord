@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { Project } from '../../types';
 import { Button } from '../common/Button';
 import { Modal } from '../common/Modal';
@@ -13,10 +14,24 @@ interface ProjectCardProps {
 
 export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onEdit, onDelete }) => {
   return (
-    <div className="bg-white p-4 rounded-lg shadow border-l-4" style={{ borderLeftColor: project.color }}>
-      <h3 className="font-semibold text-lg">{project.name}</h3>
-      <p className="text-gray-600 text-sm mt-1">{project.description}</p>
-      <div className="mt-3 flex gap-2">
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -3 }}
+      className="glass-card p-5 transition-shadow duration-200"
+      style={{
+        borderLeft: `4px solid ${project.color}`,
+        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+      }}
+    >
+      <h3 className="font-semibold text-lg" style={{ color: 'var(--color-text-primary)' }}>
+        {project.name}
+      </h3>
+      <p className="text-sm mt-1" style={{ color: 'var(--color-text-secondary)' }}>
+        {project.description}
+      </p>
+      <div className="mt-4 flex gap-2">
         <Button size="sm" variant="secondary" onClick={() => onEdit(project)}>
           Edit
         </Button>
@@ -24,7 +39,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onEdit, onDel
           Delete
         </Button>
       </div>
-    </div>
+    </motion.div>
   );
 };
 
@@ -38,7 +53,19 @@ interface ProjectFormProps {
 export const ProjectForm: React.FC<ProjectFormProps> = ({ isOpen, onClose, onSubmit, project }) => {
   const [name, setName] = useState(project?.name || '');
   const [description, setDescription] = useState(project?.description || '');
-  const [color, setColor] = useState(project?.color || '#3B82F6');
+  const [color, setColor] = useState(project?.color || '#8b5cf6');
+
+  useEffect(() => {
+    if (project) {
+      setName(project.name);
+      setDescription(project.description || '');
+      setColor(project.color || '#8b5cf6');
+    } else {
+      setName('');
+      setDescription('');
+      setColor('#8b5cf6');
+    }
+  }, [project, isOpen]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,7 +73,7 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({ isOpen, onClose, onSub
     if (!project) {
       setName('');
       setDescription('');
-      setColor('#3B82F6');
+      setColor('#8b5cf6');
     }
     onClose();
   };
@@ -67,13 +94,18 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({ isOpen, onClose, onSub
           rows={3}
         />
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Color</label>
-          <input
-            type="color"
-            value={color}
-            onChange={(e) => setColor(e.target.value)}
-            className="w-full h-10 rounded cursor-pointer"
-          />
+          <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>
+            Color
+          </label>
+          <div className="flex items-center gap-3">
+            <input
+              type="color"
+              value={color}
+              onChange={(e) => setColor(e.target.value)}
+              className="w-10 h-10 rounded-lg cursor-pointer border-none"
+            />
+            <span className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>{color}</span>
+          </div>
         </div>
         <div className="flex justify-end gap-2">
           <Button type="button" variant="secondary" onClick={onClose}>
