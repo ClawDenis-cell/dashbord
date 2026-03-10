@@ -12,6 +12,11 @@ jest.mock('../config/database', () => ({
 // Mock the UserModel
 jest.mock('../models/user');
 
+// Mock socket.io setup
+jest.mock('../services/collaboration', () => ({
+  setupSocketIO: jest.fn(),
+}));
+
 const mockUserModel = UserModel as jest.Mocked<typeof UserModel>;
 
 describe('Auth System', () => {
