@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDocumentStore, useAuthStore, useSettingsStore } from '../store';
 import { documentsApi } from '../api/documents';
@@ -6,6 +6,11 @@ import { io, Socket } from 'socket.io-client';
 import { CodeMirrorEditor } from '../components/editor/CodeMirrorEditor';
 import { EditorToolbar } from '../components/editor/EditorToolbar';
 import { ShareModal } from '../components/editor/ShareModal';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 interface ConnectedUser {
   userId: string;
@@ -230,43 +235,98 @@ export const EditorPage: React.FC = () => {
     setIsFullscreen(!isFullscreen);
   };
 
-  // Simple markdown to HTML renderer
-  const renderMarkdown = (md: string): string => {
-    let html = md
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-      // Headers
-      .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-      .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-      .replace(/^# (.+)$/gm, '<h1>$1</h1>')
-      // Bold and italic
-      .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
-      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.+?)\*/g, '<em>$1</em>')
-      // Strikethrough
-      .replace(/~~(.+?)~~/g, '<del>$1</del>')
-      // Code blocks
-      .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code class="lang-$1">$2</code></pre>')
-      // Inline code
-      .replace(/`([^`]+)`/g, '<code>$1</code>')
-      // Blockquotes
-      .replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>')
-      // Task lists
-      .replace(/^- \[x\] (.+)$/gm, '<li class="task done"><input type="checkbox" checked disabled /> $1</li>')
-      .replace(/^- \[ \] (.+)$/gm, '<li class="task"><input type="checkbox" disabled /> $1</li>')
-      // Lists
-      .replace(/^- (.+)$/gm, '<li>$1</li>')
-      .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
-      // Images (must be before links so ![alt](url) is not consumed by link regex)
-      .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width:100%;border-radius:8px" />')
-      // Links
-      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
-      // Horizontal rule
-      .replace(/^---$/gm, '<hr />')
-      // Paragraphs
-      .replace(/\n\n/g, '</p><p>')
-      .replace(/\n/g, '<br />');
+  // Memoized markdown components for react-markdown
+  const markdownComponents = useMemo(() => ({
+    code({ node, className, children, ...props }: any) {
+      const match = /language-(\w+)/.exec(className || '');
+      const inline = !match && !String(children).includes('\n');
+      if (!inline && match) {
+        return (
+          <SyntaxHighlighter
+            style={oneDark}
+            language={match[1]}
+            PreTag="div"
+            customStyle={{ borderRadius: '8px', margin: '1em 0', fontSize: '0.9em' }}
+          >
+            {String(children).replace(/\n$/, '')}
+          </SyntaxHighlighter>
+        );
+      }
+      if (!inline) {
+        return (
+          <SyntaxHighlighter
+            style={oneDark}
+            language="text"
+            PreTag="div"
+            customStyle={{ borderRadius: '8px', margin: '1em 0', fontSize: '0.9em' }}
+          >
+            {String(children).replace(/\n$/, '')}
+          </SyntaxHighlighter>
+        );
+      }
+      return (
+        <code className={className} style={{ background: 'rgba(255,255,255,0.1)', padding: '0.15em 0.4em', borderRadius: '4px', fontSize: '0.9em' }} {...props}>
+          {children}
+        </code>
+      );
+    },
+    img({ src, alt, ...props }: any) {
+      return <img src={src} alt={alt || ''} style={{ maxWidth: '100%', borderRadius: '8px', margin: '1em 0' }} {...props} />;
+    },
+    a({ href, children, ...props }: any) {
+      return <a href={href} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-accent, #60a5fa)' }} {...props}>{children}</a>;
+    },
+    table({ children, ...props }: any) {
+      return (
+        <div style={{ overflowX: 'auto', margin: '1em 0' }}>
+          <table style={{ borderCollapse: 'collapse', width: '100%' }} {...props}>{children}</table>
+        </div>
+      );
+    },
+    th({ children, ...props }: any) {
+      return <th style={{ border: '1px solid var(--color-border, #444)', padding: '0.5em 1em', textAlign: 'left', background: 'rgba(255,255,255,0.05)' }} {...props}>{children}</th>;
+    },
+    td({ children, ...props }: any) {
+      return <td style={{ border: '1px solid var(--color-border, #444)', padding: '0.5em 1em' }} {...props}>{children}</td>;
+    },
+    blockquote({ children, ...props }: any) {
+      return (
+        <blockquote style={{ borderLeft: '4px solid var(--color-accent, #60a5fa)', paddingLeft: '1em', margin: '1em 0', color: 'var(--color-text-secondary, #aaa)', fontStyle: 'italic' }} {...props}>
+          {children}
+        </blockquote>
+      );
+    },
+    hr() {
+      return <hr style={{ border: 'none', borderTop: '1px solid var(--color-border, #444)', margin: '2em 0' }} />;
+    },
+    h1({ children, ...props }: any) {
+      return <h1 style={{ fontSize: '2em', fontWeight: 700, margin: '0.8em 0 0.4em', lineHeight: 1.2, borderBottom: '1px solid var(--color-border, #333)', paddingBottom: '0.3em' }} {...props}>{children}</h1>;
+    },
+    h2({ children, ...props }: any) {
+      return <h2 style={{ fontSize: '1.5em', fontWeight: 600, margin: '0.8em 0 0.4em', lineHeight: 1.3, borderBottom: '1px solid var(--color-border, #333)', paddingBottom: '0.3em' }} {...props}>{children}</h2>;
+    },
+    h3({ children, ...props }: any) {
+      return <h3 style={{ fontSize: '1.25em', fontWeight: 600, margin: '0.8em 0 0.4em', lineHeight: 1.4 }} {...props}>{children}</h3>;
+    },
+    ul({ children, ...props }: any) {
+      return <ul style={{ paddingLeft: '1.5em', margin: '0.5em 0', listStyleType: 'disc' }} {...props}>{children}</ul>;
+    },
+    ol({ children, ...props }: any) {
+      return <ol style={{ paddingLeft: '1.5em', margin: '0.5em 0', listStyleType: 'decimal' }} {...props}>{children}</ol>;
+    },
+    li({ children, ...props }: any) {
+      return <li style={{ margin: '0.25em 0', lineHeight: 1.6 }} {...props}>{children}</li>;
+    },
+    p({ children, ...props }: any) {
+      return <p style={{ margin: '0.75em 0', lineHeight: 1.7 }} {...props}>{children}</p>;
+    },
+    pre({ children }: any) {
+      return <>{children}</>;
+    },
+  }), []);
 
-    return `<p>${html}</p>`;
+  const handleImportMarkdown = (importedContent: string) => {
+    handleContentChange(importedContent);
   };
 
   if (loading) {
@@ -308,6 +368,7 @@ export const EditorPage: React.FC = () => {
         onUndo={() => {/* handled by CodeMirror */}}
         onRedo={() => {/* handled by CodeMirror */}}
         lastEdited={currentDocument?.updated_at}
+        onImportMarkdown={handleImportMarkdown}
       />
 
       {/* Editor Area */}
@@ -337,10 +398,15 @@ export const EditorPage: React.FC = () => {
               color: 'var(--color-text-primary)',
             }}
           >
-            <div
-              className="markdown-preview prose-preview"
-              dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }}
-            />
+            <div className="markdown-preview prose-preview">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                rehypePlugins={[rehypeRaw]}
+                components={markdownComponents}
+              >
+                {content}
+              </ReactMarkdown>
+            </div>
           </div>
         )}
       </div>

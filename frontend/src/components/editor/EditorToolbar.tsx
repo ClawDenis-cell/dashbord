@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
 interface ConnectedUser {
   userId: string;
@@ -38,6 +38,7 @@ interface EditorToolbarProps {
   onUndo: () => void;
   onRedo: () => void;
   lastEdited?: string;
+  onImportMarkdown?: (content: string) => void;
 }
 
 function formatRelativeTime(dateStr: string): string {
@@ -79,7 +80,38 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
   onUndo,
   onRedo,
   lastEdited,
+  onImportMarkdown,
 }) => {
+  const [exportOpen, setExportOpen] = useState(false);
+  const exportRef = useRef<HTMLDivElement>(null);
+
+  // Close export dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (exportRef.current && !exportRef.current.contains(e.target as Node)) {
+        setExportOpen(false);
+      }
+    };
+    if (exportOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [exportOpen]);
+
+  const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !onImportMarkdown) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const text = ev.target?.result;
+      if (typeof text === 'string') {
+        onImportMarkdown(text);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
   return (
     <div className="glass-card p-2 mb-2 flex items-center gap-1.5 flex-wrap" style={{ borderRadius: '0.75rem' }}>
       {/* Navigation */}
@@ -219,23 +251,50 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
       {/* Divider */}
       <div className="h-5 w-px mx-0.5" style={{ background: 'var(--color-border)' }} />
 
-      {/* Export dropdown */}
-      <div className="relative group">
-        <button className="btn-secondary text-sm py-1 px-2" title="Export">
+      {/* Import Markdown */}
+      <label className="btn-secondary text-sm py-1 px-2 cursor-pointer" title="Import Markdown (.md)">
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+        </svg>
+        <input
+          type="file"
+          accept=".md,.markdown,.txt"
+          className="hidden"
+          onChange={handleImportFile}
+        />
+      </label>
+
+      {/* Export dropdown (click-based) */}
+      <div className="relative" ref={exportRef}>
+        <button
+          onClick={() => setExportOpen(!exportOpen)}
+          className="btn-secondary text-sm py-1 px-2"
+          title="Export"
+        >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
         </button>
-        <div className="absolute right-0 top-full mt-1 hidden group-hover:block z-50">
-          <div className="glass-card p-1 min-w-32 shadow-xl" style={{ border: '1px solid var(--color-border)' }}>
-            <button onClick={onExport} className="w-full text-left text-sm py-1.5 px-3 rounded hover:bg-white/5 transition-colors" style={{ color: 'var(--color-text-primary)' }}>
-              Export HTML
-            </button>
-            <button onClick={onExportPdf} className="w-full text-left text-sm py-1.5 px-3 rounded hover:bg-white/5 transition-colors" style={{ color: 'var(--color-text-primary)' }}>
-              Export PDF
-            </button>
+        {exportOpen && (
+          <div className="absolute right-0 top-full mt-1 z-50">
+            <div className="glass-card p-1 min-w-32 shadow-xl" style={{ border: '1px solid var(--color-border)' }}>
+              <button
+                onClick={() => { onExport(); setExportOpen(false); }}
+                className="w-full text-left text-sm py-1.5 px-3 rounded hover:bg-white/5 transition-colors"
+                style={{ color: 'var(--color-text-primary)' }}
+              >
+                Export HTML
+              </button>
+              <button
+                onClick={() => { onExportPdf(); setExportOpen(false); }}
+                className="w-full text-left text-sm py-1.5 px-3 rounded hover:bg-white/5 transition-colors"
+                style={{ color: 'var(--color-text-primary)' }}
+              >
+                Export PDF
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {access === 'owner' && (
