@@ -10,6 +10,7 @@ import kanbanConfigRoutes from './routes/kanbanConfig';
 import kanbanBoardRoutes from './routes/kanbanBoards';
 import userSettingsRoutes from './routes/userSettings';
 import documentRoutes from './routes/documents';
+import pdfRoutes from './routes/pdf';
 import { authMiddleware } from './middleware/auth';
 import { setupSocketIO } from './services/collaboration';
 
@@ -43,6 +44,7 @@ app.use('/api/kanban-config', authMiddleware, kanbanConfigRoutes);
 app.use('/api/kanban-boards', authMiddleware, kanbanBoardRoutes);
 app.use('/api/users', authMiddleware, userSettingsRoutes);
 app.use('/api/documents', authMiddleware, documentRoutes);
+app.use('/api/pdf', authMiddleware, pdfRoutes);
 
 // Error handling
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {

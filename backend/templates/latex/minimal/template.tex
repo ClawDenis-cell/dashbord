@@ -1,0 +1,145 @@
+% Minimal Template - Clean and Simple
+\documentclass[11pt,a4paper]{article}
+
+% Encoding and Fonts
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+
+% Page Layout
+\usepackage{geometry}
+\geometry{
+  paperwidth=$if(papersize)$$papersize$paper$else$a4$endif$,
+  paperheight=$if(papersize)$$if(papersize)$$papersize$paper$else$a4$endif$$else$a4$endif$,
+  margin=$if(margin)$$margin$$else$2.5cm$endif$,
+  top=$if(margin)$$margin$$else$2.5cm$endif$,
+  bottom=$if(margin)$$margin$$else$2.5cm$endif$
+}
+
+% Typography
+\usepackage{microtype}
+\usepackage{setspace}
+\onehalfspacing
+
+% Colors
+\usepackage{xcolor}
+\definecolor{linkcolor}{RGB}{42, 100, 150}
+\definecolor{codebg}{RGB}{248, 248, 248}
+\definecolor{codeframe}{RGB}{221, 221, 221}
+
+% Links
+\usepackage{hyperref}
+\hypersetup{
+  colorlinks=true,
+  linkcolor=linkcolor,
+  filecolor=linkcolor,
+  urlcolor=linkcolor,
+  citecolor=linkcolor,
+  pdftitle={$title-meta$},
+  pdfauthor={$author-meta$}
+}
+
+% Code Listings
+\usepackage{listings}
+\lstset{
+  backgroundcolor=\color{codebg},
+  frame=single,
+  framerule=0.5pt,
+  rulecolor=\color{codeframe},
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  breakatwhitespace=false,
+  columns=flexible,
+  keepspaces=true,
+  showstringspaces=false,
+  tabsize=2,
+  numbers=none,
+  xleftmargin=1em,
+  xrightmargin=1em,
+  framexleftmargin=0.5em,
+  aboveskip=1em,
+  belowskip=1em
+}
+
+% Syntax highlighting using minted if available, otherwise listings
+\usepackage{etoolbox}
+
+% Tables
+\usepackage{booktabs}
+\usepackage{longtable}
+
+% Images
+\usepackage{graphicx}
+\usepackage{grffile}
+
+% Lists
+\usepackage{enumitem}
+\setlist[itemize]{leftmargin=2em}
+\setlist[enumerate]{leftmargin=2em}
+
+% Headers and Footers
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\leftmark}
+\fancyhead[R]{\small\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% Math
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+% Section styling
+\usepackage{titlesec}
+\titleformat{\section}
+  {\normalfont\Large\bfseries}{\thesection}{1em}{}
+\titleformat{\subsection}
+  {\normalfont\large\bfseries}{\thesubsection}{1em}{}
+\titleformat{\subsubsection}
+  {\normalfont\normalsize\bfseries}{\thesubsubsection}{1em}{}
+
+% Metadata
+$if(title)$
+\title{$title$}
+$endif$
+$if(author)$
+\author{$for(author)$$author$$sep$ \\ $endfor$}
+$endif$
+$if(date)$
+\date{$date$}
+$else$
+\date{\today}
+$endif$
+
+% Table of contents
+$if(toc)$
+\usepackage{tocloft}
+\renewcommand{\cftsecfont}{\normalfont}
+\renewcommand{\cftsecpagefont}{\normalfont}
+$endif$
+
+\begin{document}
+
+% Title Page
+$if(title)$
+\maketitle
+$if(abstract)$
+\begin{abstract}
+$abstract$
+\end{abstract}
+$endif$
+\thispagestyle{empty}
+\newpage
+$endif$
+
+% Table of Contents
+$if(toc)$
+\tableofcontents
+\newpage
+$endif$
+
+% Content
+$body$
+
+\end{document}

@@ -1,0 +1,194 @@
+% Modern Template - GitHub-inspired style
+\documentclass[11pt,a4paper]{article}
+
+% Encoding and Fonts
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+% Use sans-serif fonts for modern look
+\usepackage[scaled=0.95]{helvet}
+\renewcommand{\familydefault}{\sfdefault}
+
+% Page Layout - Wider margins for modern feel
+\usepackage{geometry}
+\geometry{
+  paperwidth=$if(papersize)$$papersize$paper$else$a4$endif$,
+  paperheight=$if(papersize)$$if(papersize)$$papersize$paper$else$a4$endif$$else$a4$endif$,
+  margin=$if(margin)$$margin$$else$2cm$endif$,
+  top=$if(margin)$$margin$$else$2cm$endif$,
+  bottom=$if(margin)$$margin$$else$2cm$endif$
+}
+
+% Typography
+\usepackage{microtype}
+\usepackage{setspace}
+\setstretch{1.4}
+
+% Colors - GitHub-inspired palette
+\usepackage{xcolor}
+\definecolor{linkcolor}{RGB}{3, 102, 214}
+\definecolor{codebg}{RGB}{246, 248, 250}
+\definecolor{codeframe}{RGB}{225, 228, 232}
+\definecolor{headingcolor}{RGB}{36, 41, 46}
+\definecolor{accentcolor}{RGB}{3, 102, 214}
+\definecolor{blockquoteborder}{RGB}{3, 102, 214}
+\definecolor{blockquotebg}{RGB}{246, 248, 250}
+
+% Links
+\usepackage{hyperref}
+\hypersetup{
+  colorlinks=true,
+  linkcolor=linkcolor,
+  filecolor=linkcolor,
+  urlcolor=linkcolor,
+  citecolor=linkcolor,
+  pdftitle={$title-meta$},
+  pdfauthor={$author-meta$}
+}
+
+% Code Listings - GitHub style
+\usepackage{listings}
+\lstset{
+  backgroundcolor=\color{codebg},
+  frame=single,
+  framerule=0.8pt,
+  rulecolor=\color{codeframe},
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  breakatwhitespace=false,
+  columns=flexible,
+  keepspaces=true,
+  showstringspaces=false,
+  tabsize=2,
+  numbers=none,
+  xleftmargin=1em,
+  xrightmargin=1em,
+  framexleftmargin=0.5em,
+  aboveskip=1em,
+  belowskip=1em,
+  keywordstyle=\color{accentcolor},
+  commentstyle=\color{gray}\itshape,
+  stringstyle=\color{green!50!black}
+}
+
+% Tables - Modern styling
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{colortbl}
+
+% Images
+\usepackage{graphicx}
+\usepackage{grffile}
+
+% Lists - Tighter spacing
+\usepackage{enumitem}
+\setlist[itemize]{leftmargin=1.5em,itemsep=0.2em,topsep=0.3em}
+\setlist[enumerate]{leftmargin=1.5em,itemsep=0.2em,topsep=0.3em}
+\renewcommand{\labelitemi}{\textbullet}
+\renewcommand{\labelitemii}{\textendash}
+
+% Blockquotes
+\usepackage{tcolorbox}
+\tcbuselibrary{skins,breakable}
+\newtcolorbox{blockquote}{
+  colback=blockquotebg,
+  colframe=blockquoteborder,
+  boxrule=0pt,
+  leftrule=4pt,
+  arc=0pt,
+  outer arc=0pt,
+  left=1em,
+  right=1em,
+  top=0.5em,
+  bottom=0.5em,
+  breakable
+}
+
+% Headers and Footers - Minimal
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\textcolor{gray}{$title-meta$}}
+\fancyhead[R]{\small\textcolor{gray}{\thepage}}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% Math
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+% Section styling - Bold, modern
+\usepackage{titlesec}
+\titleformat{\section}
+  {\normalfont\LARGE\bfseries\color{headingcolor}}{\thesection}{0.5em}{}
+  [\vspace{-0.5em}\textcolor{codeframe}{\rule{\textwidth}{1pt}}]
+\titleformat{\subsection}
+  {\normalfont\Large\bfseries\color{headingcolor}}{\thesubsection}{0.5em}{}
+\titleformat{\subsubsection}
+  {\normalfont\large\bfseries\color{headingcolor}}{\thesubsubsection}{0.5em}{}
+\titlespacing*{\section}{0pt}{2em}{1em}
+\titlespacing*{\subsection}{0pt}{1.5em}{0.5em}
+\titlespacing*{\subsubsection}{0pt}{1em}{0.3em}
+
+% Horizontal rules
+\renewcommand{\hrulefill}{\textcolor{codeframe}{\rule{\textwidth}{1pt}}}
+
+% Metadata - Modern title page
+\makeatletter
+\def\maketitle{
+  \begin{center}
+    \vspace*{1em}
+    {\Huge\bfseries\color{headingcolor}\@title}\par
+    \vspace{1.5em}
+    $if(author)$
+    {\large\textcolor{gray}{$for(author)$$author$$sep$ · $endfor$}}\par
+    $endif$
+    \vspace{0.5em}
+    {\normalsize\textcolor{gray}{\@date}}\par
+    \vspace{2em}
+    \textcolor{codeframe}{\rule{0.5\textwidth}{2pt}}
+    \vspace{2em}
+  \end{center}
+}
+\makeatother
+
+% Table of Contents
+\usepackage{tocloft}
+\renewcommand{\cftsecfont}{\normalfont\bfseries}
+\renewcommand{\cftsecpagefont}{\normalfont}
+\renewcommand{\cftsubsecfont}{\normalfont}
+
+% Abstract styling
+\renewenvironment{abstract}{
+  \begin{center}
+  \begin{minipage}{0.85\textwidth}
+  \small\color{gray}
+}{
+  \end{minipage}
+  \end{center}
+  \vspace{1em}
+}
+
+\begin{document}
+
+% Title Page
+$if(title)$
+\maketitle
+$if(abstract)$
+\begin{abstract}
+$abstract$
+\end{abstract}
+$endif$
+\thispagestyle{fancy}
+$endif$
+
+% Table of Contents
+$if(toc)$
+\tableofcontents
+\newpage
+$endif$
+
+% Content
+$body$
+
+\end{document}

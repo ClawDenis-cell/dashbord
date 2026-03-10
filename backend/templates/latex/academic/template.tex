@@ -1,0 +1,187 @@
+% Academic Template - For Papers and Research
+\documentclass[11pt,a4paper]{article}
+
+% Encoding and Fonts
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+
+% Page Layout
+\usepackage{geometry}
+\geometry{
+  paperwidth=$if(papersize)$$papersize$paper$else$a4$endif$,
+  paperheight=$if(papersize)$$if(papersize)$$papersize$paper$else$a4$endif$$else$a4$endif$,
+  margin=$if(margin)$$margin$$else$2.54cm$endif$,
+  top=$if(margin)$$margin$$else$2.54cm$endif$,
+  bottom=$if(margin)$$margin$$else$2.54cm$endif$
+}
+
+% Typography - Serif for academic feel
+\usepackage{microtype}
+\usepackage{setspace}
+\onehalfspacing
+\usepackage{parskip}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.8em}
+
+% Colors
+\usepackage{xcolor}
+\definecolor{linkcolor}{RGB}{0, 51, 102}
+\definecolor{codebg}{RGB}{245, 245, 245}
+\definecolor{codeframe}{RGB}{200, 200, 200}
+\definecolor{headingcolor}{RGB}{0, 0, 0}
+
+% Links
+\usepackage{hyperref}
+\hypersetup{
+  colorlinks=true,
+  linkcolor=linkcolor,
+  filecolor=linkcolor,
+  urlcolor=linkcolor,
+  citecolor=linkcolor,
+  pdftitle={$title-meta$},
+  pdfauthor={$author-meta$}
+}
+
+% Code Listings with academic styling
+\usepackage{listings}
+\lstset{
+  backgroundcolor=\color{codebg},
+  frame=single,
+  framerule=0.5pt,
+  rulecolor=\color{codeframe},
+  basicstyle=\ttfamily\footnotesize,
+  breaklines=true,
+  breakatwhitespace=false,
+  columns=flexible,
+  keepspaces=true,
+  showstringspaces=false,
+  tabsize=2,
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  numbersep=8pt,
+  xleftmargin=2.5em,
+  xrightmargin=1em,
+  framexleftmargin=1.5em,
+  aboveskip=1.2em,
+  belowskip=1.2em,
+  captionpos=b
+}
+
+% Tables
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+
+% Images
+\usepackage{graphicx}
+\usepackage{grffile}
+\usepackage{caption}
+\captionsetup{font=small,labelfont=bf}
+
+% Lists
+\usepackage{enumitem}
+\setlist[itemize]{leftmargin=2em,itemsep=0.3em}
+\setlist[enumerate]{leftmargin=2em,itemsep=0.3em}
+
+% Headers and Footers - Academic style
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\textit{$title-meta$}}
+\fancyhead[R]{\small\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\fancyfoot[C]{\small\textit{$if(author)$$author$$endif$}}
+\renewcommand{\footrulewidth}{0.4pt}
+
+% Math
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+
+% Theorem environments
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[section]
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}{Lemma}[section]
+\newtheorem{corollary}{Corollary}[section]
+\newtheorem{proposition}{Proposition}[section]
+
+% Section styling - Traditional academic
+\usepackage{titlesec}
+\titleformat{\section}
+  {\normalfont\Large\bfseries\color{headingcolor}}{\thesection}{1em}{}
+\titleformat{\subsection}
+  {\normalfont\large\bfseries\color{headingcolor}}{\thesubsection}{1em}{}
+\titleformat{\subsubsection}
+  {\normalfont\normalsize\bfseries\color{headingcolor}}{\thesubsubsection}{1em}{}
+
+% Bibliography
+\usepackage[natbib=true,style=numeric]{biblatex}
+$if(bibliography)$
+\addbibresource{$bibliography$}
+$endif$
+
+% Abstract styling
+\renewenvironment{abstract}{
+  \begin{center}
+  \begin{minipage}{0.9\textwidth}
+  \small
+}{
+  \end{minipage}
+  \end{center}
+  \vspace{1em}
+}
+
+% Title styling
+\makeatletter
+\def\maketitle{
+  \begin{center}
+    {\LARGE\bfseries\@title}\par
+    \vspace{1em}
+    {\large\@author}\par
+    \vspace{0.5em}
+    {\normalsize\@date}\par
+  \end{center}
+  \vspace{2em}
+}
+\makeatother
+
+% Table of Contents styling
+\usepackage{tocloft}
+\renewcommand{\cftsecfont}{\normalfont}
+\renewcommand{\cftsecpagefont}{\normalfont}
+\renewcommand{\cftsecleader}{\cftdotfill{\cftdotsep}}
+
+\begin{document}
+
+% Title Page
+$if(title)$
+\maketitle
+$if(abstract)$
+\begin{abstract}
+$abstract$
+\end{abstract}
+$endif$
+$if(keywords)$
+\noindent\textbf{Keywords:} $keywords$
+\vspace{1em}
+$endif$
+\thispagestyle{fancy}
+$endif$
+
+% Table of Contents
+$if(toc)$
+\tableofcontents
+\newpage
+$endif$
+
+% Content
+$body$
+
+% Bibliography
+$if(bibliography)$
+\printbibliography
+$endif$
+
+\end{document}
