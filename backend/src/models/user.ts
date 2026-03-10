@@ -56,6 +56,40 @@ export const UserModel = {
     return result.rows[0];
   },
 
+  async updateProfile(id: string, input: { username?: string; email?: string }): Promise<User> {
+    const fields: string[] = [];
+    const values: any[] = [];
+    let paramIdx = 1;
+
+    if (input.username) {
+      fields.push(`username = $${paramIdx++}`);
+      values.push(input.username);
+    }
+    if (input.email) {
+      fields.push(`email = $${paramIdx++}`);
+      values.push(input.email);
+    }
+
+    if (fields.length === 0) {
+      const user = await this.findById(id);
+      return user!;
+    }
+
+    values.push(id);
+    const result = await pool.query(
+      `UPDATE users SET ${fields.join(', ')} WHERE id = $${paramIdx} RETURNING *`,
+      values
+    );
+    return result.rows[0];
+  },
+
+  async updatePassword(id: string, password_hash: string): Promise<void> {
+    await pool.query(
+      'UPDATE users SET password_hash = $1 WHERE id = $2',
+      [password_hash, id]
+    );
+  },
+
   async delete(id: string): Promise<boolean> {
     const result = await pool.query(
       'DELETE FROM users WHERE id = $1 RETURNING id',
