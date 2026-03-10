@@ -36,16 +36,27 @@ export const TicketController = {
     }
   },
 
+  async getByBoard(req: Request, res: Response) {
+    try {
+      const { boardId } = req.params;
+      const tickets = await TicketModel.findByBoardId(boardId);
+      res.json(tickets);
+    } catch (error) {
+      console.error('Error fetching board tickets:', error);
+      res.status(500).json({ error: 'Failed to fetch tickets' });
+    }
+  },
+
   async create(req: Request, res: Response) {
     try {
-      const { title, description, project_id, status, priority, column_name } = req.body;
+      const { title, description, project_id, board_id, status, priority, column_name } = req.body;
       
       if (!title || title.trim().length === 0) {
         return res.status(400).json({ error: 'Title is required' });
       }
       
       const ticket = await TicketModel.create({ 
-        title, description, project_id, status, priority, column_name 
+        title, description, project_id, board_id, status, priority, column_name 
       });
       res.status(201).json(ticket);
     } catch (error) {
@@ -56,9 +67,9 @@ export const TicketController = {
 
   async update(req: Request, res: Response) {
     try {
-      const { title, description, project_id, status, priority, column_name } = req.body;
+      const { title, description, project_id, board_id, status, priority, column_name } = req.body;
       const ticket = await TicketModel.update(req.params.id, { 
-        title, description, project_id, status, priority, column_name 
+        title, description, project_id, board_id, status, priority, column_name 
       });
       
       if (!ticket) {

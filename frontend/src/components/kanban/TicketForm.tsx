@@ -12,6 +12,8 @@ interface TicketFormProps {
   ticket?: Ticket | null;
   projects: Project[];
   defaultColumn: string;
+  defaultProjectId?: string;
+  defaultBoardId?: string;
 }
 
 export const TicketForm: React.FC<TicketFormProps> = ({
@@ -20,11 +22,14 @@ export const TicketForm: React.FC<TicketFormProps> = ({
   ticket,
   projects,
   defaultColumn,
+  defaultProjectId,
+  defaultBoardId,
 }) => {
   const { createTicket, updateTicket } = useTicketStore();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [projectId, setProjectId] = useState('');
+  const [projectId, setProjectId] = useState(defaultProjectId || '');
+  const [boardId, setBoardId] = useState(defaultBoardId || '');
   const [priority, setPriority] = useState('medium');
   const [columnName, setColumnName] = useState(defaultColumn);
 
@@ -32,17 +37,19 @@ export const TicketForm: React.FC<TicketFormProps> = ({
     if (ticket) {
       setTitle(ticket.title);
       setDescription(ticket.description || '');
-      setProjectId(ticket.project_id || '');
+      setProjectId(ticket.project_id || defaultProjectId || '');
+      setBoardId(ticket.board_id || defaultBoardId || '');
       setPriority(ticket.priority);
       setColumnName(ticket.column_name);
     } else {
       setTitle('');
       setDescription('');
-      setProjectId('');
+      setProjectId(defaultProjectId || '');
+      setBoardId(defaultBoardId || '');
       setPriority('medium');
       setColumnName(defaultColumn);
     }
-  }, [ticket, defaultColumn, isOpen]);
+  }, [ticket, defaultColumn, isOpen, defaultProjectId, defaultBoardId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,6 +57,7 @@ export const TicketForm: React.FC<TicketFormProps> = ({
       title,
       description,
       project_id: projectId || undefined,
+      board_id: boardId || undefined,
       priority,
       column_name: columnName,
     };

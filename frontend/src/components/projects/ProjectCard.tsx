@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { Project } from '../../types';
 import { Button } from '../common/Button';
 import { Modal } from '../common/Modal';
@@ -13,6 +14,12 @@ interface ProjectCardProps {
 }
 
 export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onEdit, onDelete }) => {
+  const navigate = useNavigate();
+
+  const handleOpenKanban = () => {
+    navigate(`/kanban?projectId=${project.id}`);
+  };
+
   return (
     <motion.div
       layout
@@ -31,7 +38,10 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onEdit, onDel
       <p className="text-sm mt-1" style={{ color: 'var(--color-text-secondary)' }}>
         {project.description}
       </p>
-      <div className="mt-4 flex gap-2">
+      <div className="mt-4 flex gap-2 flex-wrap">
+        <Button size="sm" onClick={handleOpenKanban}>
+          Kanban Boards
+        </Button>
         <Button size="sm" variant="secondary" onClick={() => onEdit(project)}>
           Edit
         </Button>

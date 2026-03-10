@@ -24,6 +24,7 @@ export interface Ticket {
   title: string;
   description: string | null;
   project_id: string | null;
+  board_id: string | null;
   status: string;
   priority: string;
   column_name: string;
@@ -35,6 +36,7 @@ export interface CreateTicketInput {
   title: string;
   description?: string;
   project_id?: string;
+  board_id?: string;
   status?: string;
   priority?: string;
   column_name?: string;
@@ -44,6 +46,7 @@ export interface UpdateTicketInput {
   title?: string;
   description?: string;
   project_id?: string;
+  board_id?: string;
   status?: string;
   priority?: string;
   column_name?: string;
@@ -78,5 +81,25 @@ export interface KanbanConfig {
 
 export interface UpdateKanbanConfigInput {
   board_name?: string;
+  columns_array?: string[];
+}
+
+export interface KanbanBoard {
+  id: string;
+  name: string;
+  project_id: string;
+  columns_array: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateKanbanBoardInput {
+  name: string;
+  project_id: string;
+  columns_array?: string[];
+}
+
+export interface UpdateKanbanBoardInput {
+  name?: string;
   columns_array?: string[];
 }

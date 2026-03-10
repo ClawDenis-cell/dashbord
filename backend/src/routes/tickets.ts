@@ -4,6 +4,7 @@ import { TicketController } from '../controllers/tickets';
 const router = Router();
 
 router.get('/', TicketController.getAll);
+router.get('/board/:boardId', TicketController.getByBoard);
 router.get('/:id', TicketController.getById);
 router.post('/', TicketController.create);
 router.put('/:id', TicketController.update);

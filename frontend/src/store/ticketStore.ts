@@ -7,6 +7,7 @@ interface TicketState {
   loading: boolean;
   error: string | null;
   fetchTickets: () => Promise<void>;
+  fetchTicketsByBoard: (boardId: string) => Promise<void>;
   createTicket: (data: CreateTicketInput) => Promise<void>;
   updateTicket: (id: string, data: UpdateTicketInput) => Promise<void>;
   deleteTicket: (id: string) => Promise<void>;
@@ -22,6 +23,16 @@ export const useTicketStore = create<TicketState>((set, get) => ({
     set({ loading: true, error: null });
     try {
       const tickets = await ticketApi.getAll();
+      set({ tickets, loading: false });
+    } catch (err) {
+      set({ error: 'Failed to fetch tickets', loading: false });
+    }
+  },
+
+  fetchTicketsByBoard: async (boardId: string) => {
+    set({ loading: true, error: null });
+    try {
+      const tickets = await ticketApi.getByBoard(boardId);
       set({ tickets, loading: false });
     } catch (err) {
       set({ error: 'Failed to fetch tickets', loading: false });

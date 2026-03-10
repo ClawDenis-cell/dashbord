@@ -5,6 +5,7 @@ import projectRoutes from './routes/projects';
 import ticketRoutes from './routes/tickets';
 import todoRoutes from './routes/todos';
 import kanbanConfigRoutes from './routes/kanbanConfig';
+import kanbanBoardRoutes from './routes/kanbanBoards';
 import { authMiddleware } from './middleware/auth';
 
 const app = express();
@@ -27,6 +28,7 @@ app.use('/api/projects', authMiddleware, projectRoutes);
 app.use('/api/tickets', authMiddleware, ticketRoutes);
 app.use('/api/todos', authMiddleware, todoRoutes);
 app.use('/api/kanban-config', authMiddleware, kanbanConfigRoutes);
+app.use('/api/kanban-boards', authMiddleware, kanbanBoardRoutes);
 
 // Error handling
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
