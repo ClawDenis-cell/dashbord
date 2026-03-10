@@ -10,60 +10,321 @@ import puppeteer from 'puppeteer';
 
 const UPLOAD_DIR = process.env.UPLOAD_DIR || '/app/uploads';
 
-// Simple markdown to HTML converter for export
+// Enhanced markdown to HTML converter for export
 function markdownToHtml(md: string): string {
-  return md
+  let html = md
+    // Escape HTML entities
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    // Tables (GitHub Flavored)
+    .replace(/\|(.+)\|\n\|[-:\s|]+\|\n((?:\|.+\|\n?)+)/g, (match, header, rows) => {
+      const headers = header.split('|').map((h: string) => h.trim()).filter(Boolean);
+      const rowLines = rows.trim().split('\n');
+      const dataRows = rowLines.map((line: string) => 
+        line.split('|').map((c: string) => c.trim()).filter(Boolean)
+      );
+      
+      let tableHtml = '<table><thead><tr>';
+      headers.forEach((h: string) => {
+        tableHtml += `<th>${h}</th>`;
+      });
+      tableHtml += '</tr></thead><tbody>';
+      
+      dataRows.forEach((row: string[]) => {
+        tableHtml += '<tr>';
+        row.forEach((cell: string) => {
+          tableHtml += `<td>${cell}</td>`;
+        });
+        tableHtml += '</tr>';
+      });
+      tableHtml += '</tbody></table>';
+      return tableHtml;
+    })
+    // Headers
     .replace(/^### (.+)$/gm, '<h3>$1</h3>')
     .replace(/^## (.+)$/gm, '<h2>$1</h2>')
     .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+    // Bold & Italic
     .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/__(.+?)__/g, '<strong>$1</strong>')
+    .replace(/_(.+?)_/g, '<em>$1</em>')
+    // Strikethrough
     .replace(/~~(.+?)~~/g, '<del>$1</del>')
-    .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code class="lang-$1">$2</code></pre>')
+    // Code blocks with language
+    .replace(/```(\w*)\n([\s\S]*?)```/g, (match, lang, code) => {
+      const language = lang || 'text';
+      return `<pre><code class="language-${language}">${code.trim()}</code></pre>`;
+    })
+    // Inline code
     .replace(/`([^`]+)`/g, '<code>$1</code>')
+    // Blockquotes
     .replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>')
-    .replace(/^- \[x\] (.+)$/gm, '<li class="task done"><input type="checkbox" checked disabled /> $1</li>')
-    .replace(/^- \[ \] (.+)$/gm, '<li class="task"><input type="checkbox" disabled /> $1</li>')
-    .replace(/^- (.+)$/gm, '<li>$1</li>')
+    // Task lists
+    .replace(/^- \[x\] (.+)$/gm, '<li class="task done">$1</li>')
+    .replace(/^- \[ \] (.+)$/gm, '<li class="task">$1</li>')
+    // Unordered lists
+    .replace(/^[-\*] (.+)$/gm, '<li>$1</li>')
+    // Ordered lists
     .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
-    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width:100%" />')
+    // Images with better handling
+    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" />')
+    // Links
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
+    // Horizontal rule
     .replace(/^---$/gm, '<hr />')
-    .replace(/\n\n/g, '</p><p>')
-    .replace(/\n/g, '<br />');
+    .replace(/^\*\*\*$/gm, '<hr />');
+
+  // Wrap lists in ul/ol
+  html = html.replace(/(<li>.*<\/li>\n?)+/g, (match) => {
+    if (match.includes('class="task"')) {
+      return '<ul style="list-style:none;padding-left:0;">' + match + '</ul>';
+    }
+    return '<ul>' + match + '</ul>';
+  });
+
+  // Wrap in paragraphs
+  html = html.replace(/\n\n/g, '</p><p>');
+  html = html.replace(/\n/g, '<br />');
+
+  // Fix duplicate paragraphs around block elements
+  html = html.replace(/<p>(<h[123]>.*?<\/h[123]>)<\/p>/g, '$1');
+  html = html.replace(/<p>(<pre>.*?<\/pre>)<\/p>/gs, '$1');
+  html = html.replace(/<p>(<blockquote>.*?<\/blockquote>)<\/p>/gs, '$1');
+  html = html.replace(/<p>(<table>.*?<\/table>)<\/p>/gs, '$1');
+  html = html.replace(/<p>(<ul>.*?<\/ul>)<\/p>/gs, '$1');
+  html = html.replace(/<p>(<hr \/>)<\/p>/g, '$1');
+
+  return html;
 }
 
 function buildHtmlDocument(title: string, contentHtml: string): string {
+  const exportDate = new Date().toLocaleDateString('de-DE', { 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  });
+  
   return `<!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>${title}</title>
-<style>
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 0 auto; padding: 40px 20px; line-height: 1.7; color: #1a1a1a; }
-h1 { font-size: 2em; border-bottom: 2px solid #e5e7eb; padding-bottom: 12px; margin-top: 1.5em; }
-h2 { font-size: 1.5em; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px; margin-top: 1.3em; }
-h3 { font-size: 1.2em; margin-top: 1.2em; }
-pre { background: #f3f4f6; padding: 16px; border-radius: 6px; overflow-x: auto; font-size: 14px; line-height: 1.5; }
-code { background: #f3f4f6; padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }
-pre code { background: none; padding: 0; }
-blockquote { border-left: 4px solid #d1d5db; margin: 1em 0; padding: 0.5em 1em; color: #6b7280; background: #f9fafb; border-radius: 0 6px 6px 0; }
-a { color: #2563eb; text-decoration: none; }
-a:hover { text-decoration: underline; }
-img { max-width: 100%; border-radius: 8px; margin: 1em 0; }
-hr { border: none; border-top: 1px solid #e5e7eb; margin: 2em 0; }
-li { margin: 0.3em 0; }
-del { color: #9ca3af; }
-.task { list-style: none; margin-left: -1.2em; }
-.task input { margin-right: 0.5em; }
-@media print {
-  body { padding: 0; max-width: none; }
-  pre { white-space: pre-wrap; }
-}
-</style></head><body>
-<h1>${title}</h1>
-<div><p>${contentHtml}</p></div>
-<hr><p style="color:#9ca3af;font-size:12px;">Exported on ${new Date().toLocaleString()}</p>
-</body></html>`;
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${title}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    @page {
+      margin: 15mm 12mm 20mm 12mm;
+      @bottom-center {
+        content: counter(page) " / " counter(pages);
+        font-family: 'Inter', sans-serif;
+        font-size: 9pt;
+        color: #9ca3af;
+      }
+    }
+    
+    * {
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 11pt;
+      line-height: 1.6;
+      color: #1f2937;
+      background: #ffffff;
+      margin: 0;
+      padding: 0;
+    }
+    
+    .header {
+      border-bottom: 2px solid #3b82f6;
+      padding-bottom: 15px;
+      margin-bottom: 30px;
+    }
+    
+    .header h1 {
+      font-size: 24pt;
+      font-weight: 700;
+      color: #111827;
+      margin: 0 0 8px 0;
+      line-height: 1.3;
+    }
+    
+    .header-meta {
+      font-size: 9pt;
+      color: #6b7280;
+    }
+    
+    .content {
+      max-width: 100%;
+    }
+    
+    .content h1 {
+      font-size: 18pt;
+      font-weight: 600;
+      color: #111827;
+      margin: 30px 0 15px 0;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .content h2 {
+      font-size: 14pt;
+      font-weight: 600;
+      color: #1f2937;
+      margin: 25px 0 12px 0;
+    }
+    
+    .content h3 {
+      font-size: 12pt;
+      font-weight: 600;
+      color: #374151;
+      margin: 20px 0 10px 0;
+    }
+    
+    .content p {
+      margin: 10px 0;
+      text-align: justify;
+    }
+    
+    .content pre {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 12px 16px;
+      overflow-x: auto;
+      font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+      font-size: 9pt;
+      line-height: 1.5;
+      margin: 15px 0;
+      page-break-inside: avoid;
+    }
+    
+    .content code {
+      font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+      font-size: 9pt;
+      background: #f1f5f9;
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #334155;
+    }
+    
+    .content pre code {
+      background: none;
+      padding: 0;
+    }
+    
+    .content blockquote {
+      border-left: 4px solid #3b82f6;
+      margin: 15px 0;
+      padding: 12px 20px;
+      background: #f8fafc;
+      color: #4b5563;
+      font-style: italic;
+      page-break-inside: avoid;
+    }
+    
+    .content a {
+      color: #2563eb;
+      text-decoration: none;
+    }
+    
+    .content a:hover {
+      text-decoration: underline;
+    }
+    
+    .content img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 6px;
+      margin: 15px 0;
+      page-break-inside: avoid;
+    }
+    
+    .content hr {
+      border: none;
+      border-top: 1px solid #e5e7eb;
+      margin: 25px 0;
+    }
+    
+    .content ul, .content ol {
+      margin: 10px 0;
+      padding-left: 25px;
+    }
+    
+    .content li {
+      margin: 5px 0;
+    }
+    
+    .content li.task {
+      list-style: none;
+      margin-left: -25px;
+      padding-left: 25px;
+    }
+    
+    .content li.task::before {
+      content: "☐ ";
+      margin-right: 5px;
+      color: #6b7280;
+    }
+    
+    .content li.task.done::before {
+      content: "☑ ";
+      color: #22c55e;
+    }
+    
+    .content del {
+      color: #9ca3af;
+    }
+    
+    .content table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 15px 0;
+      font-size: 10pt;
+      page-break-inside: avoid;
+    }
+    
+    .content th, .content td {
+      border: 1px solid #e5e7eb;
+      padding: 8px 12px;
+      text-align: left;
+    }
+    
+    .content th {
+      background: #f9fafb;
+      font-weight: 600;
+      color: #374151;
+    }
+    
+    .footer {
+      margin-top: 40px;
+      padding-top: 15px;
+      border-top: 1px solid #e5e7eb;
+      font-size: 8pt;
+      color: #9ca3af;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>${title}</h1>
+    <div class="header-meta">Exportiert am ${exportDate}</div>
+  </div>
+  
+  <div class="content">
+    ${contentHtml}
+  </div>
+  
+  <div class="footer">
+    Erstellt mit Dashboard Markdown Editor
+  </div>
+</body>
+</html>`;
 }
 
 export const DocumentController = {
@@ -402,7 +663,7 @@ export const DocumentController = {
     }
   },
 
-  // PDF Export (uses HTML + print CSS, or Puppeteer if available)
+  // PDF Export with professional quality
   async exportPdf(req: AuthRequest, res: Response) {
     try {
       if (!req.userId) return res.status(401).json({ error: 'Not authenticated.' });
@@ -419,16 +680,42 @@ export const DocumentController = {
 
       const browser = await puppeteer.launch({
         headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-gpu',
+          '--disable-web-security',
+          '--disable-features=IsolateOrigins,site-per-process',
+        ],
         executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
       });
+
       const page = await browser.newPage();
-      await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+
+      // Set viewport for better rendering
+      await page.setViewport({
+        width: 1200,
+        height: 1600,
+        deviceScaleFactor: 2,
+      });
+
+      // Wait for fonts to load
+      await page.setContent(htmlContent, {
+        waitUntil: ['networkidle0', 'domcontentloaded'],
+        timeout: 30000,
+      });
+
+      // Wait a bit for fonts to render
+      await new Promise(resolve => setTimeout(resolve, 500));
+
       const pdfBuffer = await page.pdf({
         format: 'A4',
-        margin: { top: '20mm', bottom: '20mm', left: '15mm', right: '15mm' },
         printBackground: true,
+        preferCSSPageSize: true,
+        scale: 1.5,
       });
+
       await browser.close();
 
       res.setHeader('Content-Type', 'application/pdf');
