@@ -7,6 +7,7 @@ export interface Document {
   content: string;
   owner_id: string;
   project_id: string | null;
+  folder_id: string | null;
   created_at: Date;
   updated_at: Date;
 }
@@ -39,21 +40,42 @@ export interface DocumentImage {
   created_at: Date;
 }
 
+export interface DocumentFolder {
+  id: string;
+  name: string;
+  parent_id: string | null;
+  user_id: string;
+  created_at: Date;
+}
+
 export interface CreateDocumentInput {
   title: string;
   content?: string;
   owner_id: string;
   project_id?: string;
+  folder_id?: string | null;
 }
 
 export interface UpdateDocumentInput {
   title?: string;
   content?: string;
   project_id?: string | null;
+  folder_id?: string | null;
 }
 
 export const DocumentModel = {
-  async findAll(userId: string): Promise<Document[]> {
+  async findAll(userId: string, folderId?: string | null): Promise<Document[]> {
+    if (folderId !== undefined && folderId !== null) {
+      const result = await pool.query(
+        `SELECT DISTINCT d.* FROM documents d
+         LEFT JOIN document_collaborators dc ON dc.document_id = d.id AND dc.user_id = $1
+         WHERE (d.owner_id = $1 OR dc.user_id = $1) AND d.folder_id = $2
+         ORDER BY d.updated_at DESC`,
+        [userId, folderId]
+      );
+      return result.rows;
+    }
+
     const result = await pool.query(
       `SELECT DISTINCT d.* FROM documents d
        LEFT JOIN document_collaborators dc ON dc.document_id = d.id AND dc.user_id = $1
@@ -81,10 +103,10 @@ export const DocumentModel = {
   },
 
   async create(input: CreateDocumentInput): Promise<Document> {
-    const { title, content, owner_id, project_id } = input;
+    const { title, content, owner_id, project_id, folder_id } = input;
     const result = await pool.query(
-      'INSERT INTO documents (title, content, owner_id, project_id) VALUES ($1, $2, $3, $4) RETURNING *',
-      [title, content || '', owner_id, project_id || null]
+      'INSERT INTO documents (title, content, owner_id, project_id, folder_id) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [title, content || '', owner_id, project_id || null, folder_id || null]
     );
     return result.rows[0];
   },
@@ -105,6 +127,10 @@ export const DocumentModel = {
     if (input.project_id !== undefined) {
       fields.push(`project_id = $${paramIdx++}`);
       values.push(input.project_id);
+    }
+    if (input.folder_id !== undefined) {
+      fields.push(`folder_id = $${paramIdx++}`);
+      values.push(input.folder_id);
     }
 
     if (fields.length === 0) return this.findById(id);
@@ -214,5 +240,58 @@ export const DocumentModel = {
       [userId, limit]
     );
     return result.rows;
+  },
+
+  // Folder operations
+  async getFolders(userId: string): Promise<DocumentFolder[]> {
+    const result = await pool.query(
+      'SELECT * FROM document_folders WHERE user_id = $1 ORDER BY name',
+      [userId]
+    );
+    return result.rows;
+  },
+
+  async createFolder(name: string, userId: string, parentId: string | null = null): Promise<DocumentFolder> {
+    const result = await pool.query(
+      'INSERT INTO document_folders (name, user_id, parent_id) VALUES ($1, $2, $3) RETURNING *',
+      [name, userId, parentId]
+    );
+    return result.rows[0];
+  },
+
+  async updateFolder(id: string, data: { name?: string; parent_id?: string | null }): Promise<DocumentFolder | null> {
+    const fields: string[] = [];
+    const values: any[] = [];
+    let paramIdx = 1;
+
+    if (data.name !== undefined) {
+      fields.push(`name = $${paramIdx++}`);
+      values.push(data.name);
+    }
+    if (data.parent_id !== undefined) {
+      fields.push(`parent_id = $${paramIdx++}`);
+      values.push(data.parent_id);
+    }
+
+    if (fields.length === 0) return null;
+
+    values.push(id);
+    const result = await pool.query(
+      `UPDATE document_folders SET ${fields.join(', ')} WHERE id = $${paramIdx} RETURNING *`,
+      values
+    );
+    return result.rows[0] || null;
+  },
+
+  async deleteFolder(id: string): Promise<boolean> {
+    // Move documents from this folder to root (null)
+    await pool.query('UPDATE documents SET folder_id = NULL WHERE folder_id = $1', [id]);
+    const result = await pool.query('DELETE FROM document_folders WHERE id = $1 RETURNING id', [id]);
+    return result.rowCount !== null && result.rowCount > 0;
+  },
+
+  async getFolderById(id: string): Promise<DocumentFolder | null> {
+    const result = await pool.query('SELECT * FROM document_folders WHERE id = $1', [id]);
+    return result.rows[0] || null;
   },
 };

@@ -17,6 +17,13 @@ const upload = multer({
 
 const router = Router();
 
+// Folder routes (must be before /:id routes)
+router.get('/folders', DocumentController.getFolders);
+router.post('/folders', DocumentController.createFolder);
+router.put('/folders/:id', DocumentController.updateFolder);
+router.delete('/folders/:id', DocumentController.deleteFolder);
+
+// Document CRUD
 router.get('/', DocumentController.getAll);
 router.get('/recent', DocumentController.getRecent);
 router.get('/project/:projectId', DocumentController.getByProject);
@@ -36,8 +43,10 @@ router.post('/invites/:token/accept', DocumentController.acceptInvite);
 
 // Image upload
 router.post('/:id/images', upload.single('image'), DocumentController.uploadImage);
+router.post('/:id/images/url', DocumentController.uploadImageUrl);
 
 // Export
+router.get('/:id/export/html', DocumentController.exportHtml);
 router.get('/:id/export/pdf', DocumentController.exportPdf);
 
 export default router;
