@@ -3,6 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useDocumentStore, useAuthStore, useSettingsStore } from '../store';
 import { documentsApi } from '../api/documents';
 import { io, Socket } from 'socket.io-client';
+import { CodeMirrorEditor } from '../components/editor/CodeMirrorEditor';
+import { EditorToolbar } from '../components/editor/EditorToolbar';
+import { ShareModal } from '../components/editor/ShareModal';
 
 interface ConnectedUser {
   userId: string;
@@ -10,35 +13,26 @@ interface ConnectedUser {
   cursor?: { line: number; ch: number };
 }
 
-const COLORS = ['#f87171', '#fb923c', '#fbbf24', '#34d399', '#60a5fa', '#a78bfa', '#f472b6', '#38bdf8'];
-
-function getUserColor(userId: string): string {
-  let hash = 0;
-  for (let i = 0; i < userId.length; i++) {
-    hash = userId.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return COLORS[Math.abs(hash) % COLORS.length];
-}
-
 export const EditorPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const { currentDocument, fetchDocument, loading } = useDocumentStore();
-  const { settings } = useSettingsStore();
+  const { settings, updateSettings } = useSettingsStore();
 
   const [content, setContent] = useState('');
   const [title, setTitle] = useState('');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [showPreview, setShowPreview] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [connectedUsers, setConnectedUsers] = useState<ConnectedUser[]>([]);
   const [access, setAccess] = useState<string>('owner');
   const [showShareModal, setShowShareModal] = useState(false);
-  const [inviteLink, setInviteLink] = useState('');
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [vimMode, setVimMode] = useState(settings?.vim_mode || false);
   const socketRef = useRef<Socket | null>(null);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const fullscreenRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (id) fetchDocument(id);
@@ -51,6 +45,13 @@ export const EditorPage: React.FC = () => {
       setAccess((currentDocument as any).access || 'owner');
     }
   }, [currentDocument]);
+
+  // Sync vim mode from settings
+  useEffect(() => {
+    if (settings?.vim_mode !== undefined) {
+      setVimMode(settings.vim_mode);
+    }
+  }, [settings?.vim_mode]);
 
   // Socket.IO connection
   useEffect(() => {
@@ -137,28 +138,20 @@ export const EditorPage: React.FC = () => {
     }
   }, [id, content, title, access]);
 
-  // Keyboard shortcut: Ctrl+S
+  // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
         handleSave();
       }
+      if (e.key === 'Escape' && isFullscreen) {
+        setIsFullscreen(false);
+      }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [handleSave]);
-
-  const handleCreateInvite = async (permission: 'read' | 'edit') => {
-    if (!id) return;
-    try {
-      const res = await documentsApi.createInvite(id, { permission });
-      const link = `${window.location.origin}/documents/invite/${res.data.token}`;
-      setInviteLink(link);
-    } catch {
-      // error
-    }
-  };
+  }, [handleSave, isFullscreen]);
 
   const handleImageUpload = async (file: File) => {
     if (!id) return;
@@ -166,28 +159,30 @@ export const EditorPage: React.FC = () => {
       const res = await documentsApi.uploadImage(id, file);
       const imageUrl = res.data.url;
       const markdownImg = `![${file.name}](${imageUrl})`;
-
-      if (textareaRef.current) {
-        const start = textareaRef.current.selectionStart;
-        const newContent = content.slice(0, start) + markdownImg + content.slice(start);
-        handleContentChange(newContent);
-      }
+      handleContentChange(content + '\n' + markdownImg);
     } catch {
       // error
     }
   };
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    const files = Array.from(e.dataTransfer.files);
-    const imageFile = files.find(f => f.type.startsWith('image/'));
-    if (imageFile) handleImageUpload(imageFile);
-  };
-
-  const handleExport = async () => {
+  const handleImageUrlPaste = async (url: string) => {
     if (!id) return;
     try {
-      const res = await documentsApi.exportPdf(id);
+      const res = await documentsApi.uploadImageUrl(id, url);
+      const imageUrl = res.data.url;
+      const markdownImg = `![image](${imageUrl})`;
+      handleContentChange(content + '\n' + markdownImg);
+    } catch {
+      // Fallback: just insert the URL directly
+      const markdownImg = `![image](${url})`;
+      handleContentChange(content + '\n' + markdownImg);
+    }
+  };
+
+  const handleExportHtml = async () => {
+    if (!id) return;
+    try {
+      const res = await documentsApi.exportHtml(id);
       const blob = new Blob([res.data], { type: 'text/html' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -200,24 +195,39 @@ export const EditorPage: React.FC = () => {
     }
   };
 
-  const insertMarkdown = (before: string, after: string = '') => {
-    if (!textareaRef.current) return;
-    const { selectionStart, selectionEnd } = textareaRef.current;
-    const selected = content.slice(selectionStart, selectionEnd);
-    const newContent = content.slice(0, selectionStart) + before + selected + after + content.slice(selectionEnd);
-    handleContentChange(newContent);
+  const handleExportPdf = async () => {
+    if (!id) return;
+    try {
+      const res = await documentsApi.exportPdf(id);
+      const blob = new Blob([res.data], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${title || 'document'}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      // Fallback to HTML export
+      handleExportHtml();
+    }
+  };
 
-    // Restore cursor position
-    setTimeout(() => {
-      if (textareaRef.current) {
-        const newPos = selectionStart + before.length + (selected ? selected.length : 0);
-        textareaRef.current.focus();
-        textareaRef.current.setSelectionRange(
-          selected ? newPos + after.length : selectionStart + before.length,
-          selected ? newPos + after.length : selectionStart + before.length
-        );
-      }
-    }, 0);
+  const handleInsertMarkdown = (before: string, after: string = '') => {
+    // This is a simple insert at end for toolbar buttons
+    // The CodeMirror editor handles its own cursor-based insertions
+    const newContent = content + before + after;
+    handleContentChange(newContent);
+  };
+
+  const handleToggleVim = () => {
+    const newVimMode = !vimMode;
+    setVimMode(newVimMode);
+    // Persist to settings
+    updateSettings({ vim_mode: newVimMode }).catch(() => {});
+  };
+
+  const handleToggleFullscreen = () => {
+    setIsFullscreen(!isFullscreen);
   };
 
   // Simple markdown to HTML renderer
@@ -232,19 +242,24 @@ export const EditorPage: React.FC = () => {
       .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      // Strikethrough
+      .replace(/~~(.+?)~~/g, '<del>$1</del>')
       // Code blocks
       .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code class="lang-$1">$2</code></pre>')
       // Inline code
       .replace(/`([^`]+)`/g, '<code>$1</code>')
       // Blockquotes
-      .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>')
+      .replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>')
+      // Task lists
+      .replace(/^- \[x\] (.+)$/gm, '<li class="task done"><input type="checkbox" checked disabled /> $1</li>')
+      .replace(/^- \[ \] (.+)$/gm, '<li class="task"><input type="checkbox" disabled /> $1</li>')
       // Lists
       .replace(/^- (.+)$/gm, '<li>$1</li>')
       .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
       // Links
-      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
       // Images
-      .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width:100%" />')
+      .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width:100%;border-radius:8px" />')
       // Horizontal rule
       .replace(/^---$/gm, '<hr />')
       // Paragraphs
@@ -263,104 +278,59 @@ export const EditorPage: React.FC = () => {
     );
   }
 
-  return (
-    <div className="h-[calc(100vh-120px)] flex flex-col">
+  const editorContent = (
+    <div
+      ref={fullscreenRef}
+      className={`flex flex-col ${isFullscreen ? 'fixed inset-0 z-40 p-4' : 'h-[calc(100vh-120px)]'}`}
+      style={isFullscreen ? { background: 'var(--color-bg-primary)' } : {}}
+    >
       {/* Toolbar */}
-      <div className="glass-card p-3 mb-3 flex items-center gap-2 flex-wrap" style={{ borderRadius: '0.75rem' }}>
-        <button onClick={() => navigate('/documents')} className="btn-secondary text-sm py-1 px-3">
-          Back
-        </button>
-
-        <input
-          type="text"
-          value={title}
-          onChange={(e) => { setTitle(e.target.value); setSaved(false); }}
-          className="input-field flex-1 min-w-48 text-sm"
-          placeholder="Document title..."
-          style={{ maxWidth: '300px' }}
-        />
-
-        <div className="flex gap-1">
-          <button onClick={() => insertMarkdown('**', '**')} className="btn-secondary text-sm py-1 px-2 font-bold" title="Bold">B</button>
-          <button onClick={() => insertMarkdown('*', '*')} className="btn-secondary text-sm py-1 px-2 italic" title="Italic">I</button>
-          <button onClick={() => insertMarkdown('# ')} className="btn-secondary text-sm py-1 px-2" title="Heading">H</button>
-          <button onClick={() => insertMarkdown('`', '`')} className="btn-secondary text-sm py-1 px-2 font-mono" title="Code">&lt;&gt;</button>
-          <button onClick={() => insertMarkdown('- ')} className="btn-secondary text-sm py-1 px-2" title="List">List</button>
-          <button onClick={() => insertMarkdown('[', '](url)')} className="btn-secondary text-sm py-1 px-2" title="Link">Link</button>
-        </div>
-
-        <label className="btn-secondary text-sm py-1 px-2 cursor-pointer" title="Upload Image">
-          Img
-          <input
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={(e) => { if (e.target.files?.[0]) handleImageUpload(e.target.files[0]); }}
-          />
-        </label>
-
-        <button onClick={() => setShowPreview(!showPreview)} className="btn-secondary text-sm py-1 px-2">
-          {showPreview ? 'Editor Only' : 'Split View'}
-        </button>
-
-        <button onClick={handleExport} className="btn-secondary text-sm py-1 px-2" title="Export">
-          Export
-        </button>
-
-        {access === 'owner' && (
-          <button onClick={() => setShowShareModal(true)} className="btn-primary text-sm py-1 px-3">
-            Share
-          </button>
-        )}
-
-        <div className="flex items-center gap-1 ml-auto">
-          {/* Connected users */}
-          {connectedUsers.filter(u => u.userId !== user?.id).map((u) => (
-            <div
-              key={u.userId}
-              className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white"
-              style={{ background: getUserColor(u.userId) }}
-              title={u.username}
-            >
-              {u.username[0]?.toUpperCase()}
-            </div>
-          ))}
-
-          <span className="text-xs ml-2" style={{ color: 'var(--color-text-secondary)' }}>
-            {saving ? 'Saving...' : saved ? 'Saved' : access === 'read' ? 'Read-only' : ''}
-          </span>
-        </div>
-      </div>
+      <EditorToolbar
+        title={title}
+        onTitleChange={(t) => { setTitle(t); setSaved(false); }}
+        onBack={() => navigate('/documents')}
+        onInsertMarkdown={handleInsertMarkdown}
+        onImageUpload={handleImageUpload}
+        showPreview={showPreview}
+        onTogglePreview={() => setShowPreview(!showPreview)}
+        isFullscreen={isFullscreen}
+        onToggleFullscreen={handleToggleFullscreen}
+        onExport={handleExportHtml}
+        onExportPdf={handleExportPdf}
+        access={access}
+        onShare={() => setShowShareModal(true)}
+        connectedUsers={connectedUsers}
+        currentUserId={user?.id}
+        saving={saving}
+        saved={saved}
+        vimMode={vimMode}
+        onToggleVim={handleToggleVim}
+        onUndo={() => {/* handled by CodeMirror */}}
+        onRedo={() => {/* handled by CodeMirror */}}
+        lastEdited={currentDocument?.updated_at}
+      />
 
       {/* Editor Area */}
-      <div className="flex-1 flex gap-3 min-h-0">
-        {/* Editor */}
-        <div className={`flex-1 ${showPreview ? 'w-1/2' : 'w-full'}`}>
-          <textarea
-            ref={textareaRef}
+      <div className="flex-1 flex gap-2 min-h-0">
+        {/* CodeMirror Editor */}
+        <div className={`flex-1 ${showPreview ? 'w-1/2' : 'w-full'} min-h-0`}>
+          <CodeMirrorEditor
             value={content}
-            onChange={(e) => handleContentChange(e.target.value)}
-            onDrop={handleDrop}
-            onDragOver={(e) => e.preventDefault()}
+            onChange={handleContentChange}
             readOnly={access === 'read'}
-            className="w-full h-full p-4 resize-none font-mono rounded-xl focus:outline-none focus:ring-2"
-            style={{
-              background: 'var(--color-bg-secondary)',
-              color: 'var(--color-text-primary)',
-              border: '1px solid var(--color-border)',
-              fontSize: `${settings?.editor_font_size || 14}px`,
-              tabSize: settings?.editor_tab_size || 2,
-              outlineColor: 'var(--color-accent)',
-            }}
-            placeholder="Start writing markdown..."
-            spellCheck={false}
+            vimMode={vimMode}
+            fontSize={settings?.editor_font_size || 14}
+            tabSize={settings?.editor_tab_size || 2}
+            onSave={() => handleSave()}
+            onImagePaste={handleImageUpload}
+            onImageUrlPaste={handleImageUrlPaste}
           />
         </div>
 
         {/* Preview */}
         {showPreview && (
           <div
-            className="flex-1 w-1/2 p-4 overflow-auto rounded-xl prose-preview"
+            className="flex-1 w-1/2 p-6 overflow-auto rounded-xl"
             style={{
               background: 'var(--color-bg-secondary)',
               border: '1px solid var(--color-border)',
@@ -368,7 +338,7 @@ export const EditorPage: React.FC = () => {
             }}
           >
             <div
-              className="markdown-preview"
+              className="markdown-preview prose-preview"
               dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }}
             />
           </div>
@@ -376,61 +346,14 @@ export const EditorPage: React.FC = () => {
       </div>
 
       {/* Share Modal */}
-      {showShareModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowShareModal(false)}>
-          <div
-            className="glass-card p-6 w-full max-w-md mx-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="text-lg font-semibold mb-4" style={{ color: 'var(--color-text-primary)' }}>
-              Share Document
-            </h2>
-
-            <div className="space-y-3 mb-4">
-              <button
-                onClick={() => handleCreateInvite('edit')}
-                className="btn-primary w-full text-sm"
-              >
-                Create Edit Link
-              </button>
-              <button
-                onClick={() => handleCreateInvite('read')}
-                className="btn-secondary w-full text-sm"
-              >
-                Create Read-only Link
-              </button>
-            </div>
-
-            {inviteLink && (
-              <div className="mt-4">
-                <label className="block text-sm mb-1" style={{ color: 'var(--color-text-secondary)' }}>
-                  Invite Link (expires in 72h)
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={inviteLink}
-                    readOnly
-                    className="input-field text-sm flex-1"
-                  />
-                  <button
-                    onClick={() => navigator.clipboard.writeText(inviteLink)}
-                    className="btn-secondary text-sm"
-                  >
-                    Copy
-                  </button>
-                </div>
-              </div>
-            )}
-
-            <div className="mt-4 flex justify-end">
-              <button onClick={() => setShowShareModal(false)} className="btn-secondary text-sm">
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
+      {showShareModal && id && (
+        <ShareModal
+          documentId={id}
+          onClose={() => setShowShareModal(false)}
+        />
       )}
     </div>
   );
+
+  return editorContent;
 };

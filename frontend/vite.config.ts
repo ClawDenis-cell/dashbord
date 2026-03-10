@@ -4,6 +4,31 @@ import path from 'path'
 
 export default defineConfig({
   plugins: [react()],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'codemirror': [
+            '@codemirror/state',
+            '@codemirror/view',
+            '@codemirror/commands',
+            '@codemirror/language',
+            '@codemirror/lang-markdown',
+            '@codemirror/theme-one-dark',
+            '@codemirror/search',
+            '@replit/codemirror-vim',
+          ],
+          'vendor': [
+            'react',
+            'react-dom',
+            'react-router-dom',
+            'framer-motion',
+            'zustand',
+          ],
+        },
+      },
+    },
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
