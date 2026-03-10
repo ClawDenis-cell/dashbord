@@ -4,8 +4,12 @@ import { Navigation } from './components/common/Navigation';
 import { KanbanPage } from './pages/KanbanPage';
 import { ProjectsPage } from './pages/ProjectsPage';
 import { TodosPage } from './pages/TodosPage';
+import { SettingsPage } from './pages/SettingsPage';
+import { DocumentsPage } from './pages/DocumentsPage';
+import { EditorPage } from './pages/EditorPage';
+import { InvitePage } from './pages/InvitePage';
 import { LoginPage } from './pages/LoginPage';
-import { useAuthStore, useThemeStore } from './store';
+import { useAuthStore, useThemeStore, useSettingsStore } from './store';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { token, loading } = useAuthStore();
@@ -30,25 +34,30 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
-  const { checkAuth } = useAuthStore();
-  const { isDark } = useThemeStore();
-
-  useEffect(() => {
-    // Apply theme on mount
-    if (isDark) {
-      document.documentElement.classList.remove('light');
-    } else {
-      document.documentElement.classList.add('light');
-    }
-  }, [isDark]);
+  const { checkAuth, token } = useAuthStore();
+  // Subscribe to theme store so theme changes trigger re-render
+  useThemeStore();
+  const { fetchSettings } = useSettingsStore();
 
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
 
+  // Load user settings when authenticated
+  useEffect(() => {
+    if (token) {
+      fetchSettings();
+    }
+  }, [token, fetchSettings]);
+
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/documents/invite/:token" element={
+        <ProtectedRoute>
+          <InvitePage />
+        </ProtectedRoute>
+      } />
       <Route
         path="/*"
         element={
@@ -60,6 +69,9 @@ function App() {
                   <Route path="/" element={<KanbanPage />} />
                   <Route path="/projects" element={<ProjectsPage />} />
                   <Route path="/todos" element={<TodosPage />} />
+                  <Route path="/settings" element={<SettingsPage />} />
+                  <Route path="/documents" element={<DocumentsPage />} />
+                  <Route path="/documents/:id" element={<EditorPage />} />
                 </Routes>
               </main>
             </div>
