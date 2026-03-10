@@ -140,7 +140,6 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId: propProject
               onSelectBoard={setCurrentBoard}
               onCreateBoard={handleCreateBoard}
               onDeleteBoard={handleDeleteBoard}
-              projectId={selectedProjectId}
             />
           )}
         </div>

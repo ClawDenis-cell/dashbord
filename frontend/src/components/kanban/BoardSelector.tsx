@@ -11,7 +11,6 @@ interface BoardSelectorProps {
   onSelectBoard: (board: KanbanBoard) => void;
   onCreateBoard: (name: string, columns: string[]) => void;
   onDeleteBoard: (boardId: string) => void;
-  projectId: string;
 }
 
 export const BoardSelector: React.FC<BoardSelectorProps> = ({
@@ -19,8 +18,7 @@ export const BoardSelector: React.FC<BoardSelectorProps> = ({
   currentBoard,
   onSelectBoard,
   onCreateBoard,
-  onDeleteBoard,
-  projectId
+  onDeleteBoard
 }) => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newBoardName, setNewBoardName] = useState('');
