@@ -6,6 +6,7 @@ import fs from 'fs';
 import crypto from 'crypto';
 import https from 'https';
 import http from 'http';
+import puppeteer from 'puppeteer';
 
 const UPLOAD_DIR = process.env.UPLOAD_DIR || '/app/uploads';
 
@@ -27,8 +28,8 @@ function markdownToHtml(md: string): string {
     .replace(/^- \[ \] (.+)$/gm, '<li class="task"><input type="checkbox" disabled /> $1</li>')
     .replace(/^- (.+)$/gm, '<li>$1</li>')
     .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
     .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width:100%" />')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
     .replace(/^---$/gm, '<hr />')
     .replace(/\n\n/g, '</p><p>')
     .replace(/\n/g, '<br />');
@@ -416,34 +417,23 @@ export const DocumentController = {
       const contentHtml = markdownToHtml(doc.content);
       const htmlContent = buildHtmlDocument(doc.title, contentHtml);
 
-      // Try Puppeteer for real PDF
-      try {
-        const puppeteer = require('puppeteer');
-        const browser = await puppeteer.launch({
-          headless: true,
-          args: ['--no-sandbox', '--disable-setuid-sandbox'],
-        });
-        const page = await browser.newPage();
-        await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
-        const pdfBuffer = await page.pdf({
-          format: 'A4',
-          margin: { top: '20mm', bottom: '20mm', left: '15mm', right: '15mm' },
-          printBackground: true,
-        });
-        await browser.close();
+      const browser = await puppeteer.launch({
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
+      });
+      const page = await browser.newPage();
+      await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+      const pdfBuffer = await page.pdf({
+        format: 'A4',
+        margin: { top: '20mm', bottom: '20mm', left: '15mm', right: '15mm' },
+        printBackground: true,
+      });
+      await browser.close();
 
-        res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `attachment; filename="${doc.title.replace(/[^a-zA-Z0-9]/g, '_')}.pdf"`);
-        res.send(pdfBuffer);
-        return;
-      } catch {
-        // Puppeteer not available, fall back to HTML with print CSS
-      }
-
-      // Fallback: send HTML that can be printed as PDF
-      res.setHeader('Content-Type', 'text/html');
-      res.setHeader('Content-Disposition', `attachment; filename="${doc.title.replace(/[^a-zA-Z0-9]/g, '_')}.html"`);
-      res.send(htmlContent);
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${doc.title.replace(/[^a-zA-Z0-9]/g, '_')}.pdf"`);
+      res.send(Buffer.from(pdfBuffer));
     } catch (error) {
       console.error('Error exporting PDF:', error);
       res.status(500).json({ error: 'Failed to export PDF.' });

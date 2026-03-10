@@ -256,10 +256,10 @@ export const EditorPage: React.FC = () => {
       // Lists
       .replace(/^- (.+)$/gm, '<li>$1</li>')
       .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
+      // Images (must be before links so ![alt](url) is not consumed by link regex)
+      .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width:100%;border-radius:8px" />')
       // Links
       .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
-      // Images
-      .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width:100%;border-radius:8px" />')
       // Horizontal rule
       .replace(/^---$/gm, '<hr />')
       // Paragraphs
