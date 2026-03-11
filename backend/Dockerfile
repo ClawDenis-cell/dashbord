@@ -1,70 +1,83 @@
-FROM node:20-alpine
+FROM pandoc/latex:3.1-ubuntu
 
-# Install system dependencies
-RUN apk add --no-cache \
-    chromium \
-    nss \
-    freetype \
-    harfbuzz \
+# Install Node.js 20 und weitere Dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
     ca-certificates \
-    ttf-freefont \
-    # Pandoc dependencies
-    gmp \
-    libffi \
-    # LaTeX dependencies
-    perl \
+    chromium \
+    fonts-liberation \
+    libappindicator3-1 \
+    libasound2 \
+    libatk-bridge2.0-0 \
+    libatk1.0-0 \
+    libc6 \
+    libcairo2 \
+    libcups2 \
+    libdbus-1-3 \
+    libexpat1 \
+    libfontconfig1 \
+    libgbm1 \
+    libgcc1 \
+    libglib2.0-0 \
+    libgtk-3-0 \
+    libnspr4 \
+    libnss3 \
+    libpango-1.0-0 \
+    libpangocairo-1.0-0 \
+    libstdc++6 \
+    libx11-6 \
+    libx11-xcb1 \
+    libxcb1 \
+    libxcomposite1 \
+    libxcursor1 \
+    libxdamage1 \
+    libxext6 \
+    libxfixes3 \
+    libxi6 \
+    libxrandr2 \
+    libxrender1 \
+    libxss1 \
+    libxtst6 \
+    lsb-release \
     wget \
-    tar \
-    xz
+    xdg-utils \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install Pandoc
-ENV PANDOC_VERSION=3.1.11
-RUN wget -q https://github.com/jgm/pandoc/releases/download/${PANDOC_VERSION}/pandoc-${PANDOC_VERSION}-linux-amd64.tar.gz -O /tmp/pandoc.tar.gz && \
-    tar xvzf /tmp/pandoc.tar.gz --strip-components 1 -C /usr/local && \
-    rm /tmp/pandoc.tar.gz && \
-    pandoc --version
+# Node.js 20 installieren
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y nodejs && \
+    rm -rf /var/lib/apt/lists/*
 
-# Install TinyTeX (minimal TeX Live distribution)
-RUN wget -qO- "https://yihui.org/tinytex/install-bin-unix.sh" | sh && \
-    export PATH="$HOME/.TinyTeX/bin/x86_64-linuxmusl:$PATH" && \
-    # Install essential LaTeX packages
-    tlmgr install \
-        microtype \
-        setspace \
-        geometry \
-        fancyhdr \
-        titlesec \
-        booktabs \
-        longtable \
-        enumitem \
-        xcolor \
-        tcolorbox \
-        listings \
-        parskip \
-        tocloft \
-        amsmath \
-        amssymb \
-        etoolbox \
-        grffile \
-        caption \
-        hyperref \
-        url \
-        graphics \
-        tools \
-        oberdiek \
-        latexconfig && \
-    # Create symlinks for pdflatex
-    ln -sf ~/.TinyTeX/bin/x86_64-linuxmusl/pdflatex /usr/local/bin/pdflatex && \
-    ln -sf ~/.TinyTeX/bin/x86_64-linuxmusl/latex /usr/local/bin/latex && \
-    ln -sf ~/.TinyTeX/bin/x86_64-linuxmusl/xelatex /usr/local/bin/xelatex && \
-    ln -sf ~/.TinyTeX/bin/x86_64-linuxmusl/lualatex /usr/local/bin/lualatex && \
-    ln -sf ~/.TinyTeX/bin/x86_64-linuxmusl/bibtex /usr/local/bin/bibtex && \
-    ln -sf ~/.TinyTeX/bin/x86_64-linuxmusl/tlmgr /usr/local/bin/tlmgr
+# Zusaetzliche LaTeX-Pakete fuer das Backend
+RUN tlmgr install \
+    microtype \
+    setspace \
+    geometry \
+    fancyhdr \
+    titlesec \
+    booktabs \
+    longtable \
+    enumitem \
+    xcolor \
+    listings \
+    parskip \
+    tocloft \
+    amsmath \
+    amssymb \
+    etoolbox \
+    grffile \
+    caption \
+    hyperref \
+    url \
+    graphics \
+    tools \
+    oberdiek \
+    latexconfig
 
-# Set environment variables
+# Umgebungsvariablen
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
-ENV PATH="/root/.TinyTeX/bin/x86_64-linuxmusl:$PATH"
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+ENV PATH="/usr/local/bin:$PATH"
 
 WORKDIR /app
 
