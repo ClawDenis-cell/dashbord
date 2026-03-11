@@ -204,6 +204,11 @@ export const EditorPage: React.FC = () => {
     if (!id) return;
     try {
       const res = await documentsApi.exportPdf(id);
+      // Check if response is actually a PDF (not an error response converted to blob)
+      const contentType = res.headers['content-type'] || '';
+      if (!contentType.includes('application/pdf')) {
+        throw new Error(`Expected PDF but got ${contentType}`);
+      }
       const blob = new Blob([res.data], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
