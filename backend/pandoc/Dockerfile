@@ -3,7 +3,8 @@
 
 FROM pandoc/latex:3.1-ubuntu
 
-# Install additional LaTeX packages commonly needed
+# Installiere nur die wichtigsten zusaetzlichen LaTeX-Pakete
+# (Das Basis-Image hat bereits die meisten Standardpakete)
 RUN tlmgr install \
     microtype \
     setspace \
@@ -28,60 +29,30 @@ RUN tlmgr install \
     amssymb \
     amsthm \
     fontspec \
-    luatextra \
     colortbl \
     array \
     multirow \
     makecell \
     threeparttable \
-    threeparttablex \
     environ \
-    trimspaces \
     ulem \
-    soul \
-    lettrine \
-    textcase \
     footmisc \
     zref \
     needspace \
-    koma-script \
     marginnote \
-    sidenotes \
     changepage \
-    picinpar \
     wrapfig \
     float \
     placeins \
     algorithm2e \
-    ifoddpage \
     relsize \
     underscore \
     upquote \
-    xstring \
     framed \
-    floatrow \
     cleveref \
-    hyperxmp \
-    pdfx \
     bookmark \
-    currfile \
-    filehook \
-    svn-prov \
-    ltxcmds \
-    infwarerr \
-    kvoptions \
-    kvsetkeys \
-    etexcmds \
-    iftex \
-    pdftexcmds \
-    catchfile \
-    luacolor \
-    luaotfload \
-    lualibs \
-    lua-uni-algos \
-    luatexbase \
-    luatex \
-    luatex85
+    hyperxmp \
+    pdfx
 
 # Install additional fonts
 RUN apt-get update && apt-get install -y \
