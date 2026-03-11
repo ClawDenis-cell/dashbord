@@ -1,7 +1,7 @@
 # Pandoc + TinyTeX Docker Image
 # Industry-standard document conversion stack
 
-FROM pandoc/latex:3.1.11-ubuntu
+FROM pandoc/latex:3.1-ubuntu
 
 # Install additional LaTeX packages commonly needed
 RUN tlmgr install \
