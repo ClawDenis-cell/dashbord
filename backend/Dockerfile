@@ -47,32 +47,6 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get install -y nodejs && \
     rm -rf /var/lib/apt/lists/*
 
-# Zusaetzliche LaTeX-Pakete fuer das Backend
-RUN tlmgr install \
-    microtype \
-    setspace \
-    geometry \
-    fancyhdr \
-    titlesec \
-    booktabs \
-    longtable \
-    enumitem \
-    xcolor \
-    listings \
-    parskip \
-    tocloft \
-    amsmath \
-    amssymb \
-    etoolbox \
-    grffile \
-    caption \
-    hyperref \
-    url \
-    graphics \
-    tools \
-    oberdiek \
-    latexconfig
-
 # Umgebungsvariablen
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
