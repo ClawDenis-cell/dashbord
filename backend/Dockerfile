@@ -4,7 +4,7 @@ FROM pandoc/latex:3.1-ubuntu
 RUN apt-get update && apt-get install -y \
     curl \
     ca-certificates \
-    chromium \
+    chromium-browser \
     fonts-liberation \
     libappindicator3-1 \
     libasound2t64 \
@@ -39,6 +39,11 @@ RUN apt-get update && apt-get install -y \
     lsb-release \
     wget \
     xdg-utils \
+    # Zusätzliche Fonts für PDF-Generierung
+    fonts-noto-color-emoji \
+    fonts-noto-cjk \
+    fonts-liberation \
+    fonts-dejavu-core \
     && rm -rf /var/lib/apt/lists/*
 
 # Node.js 20 installieren
@@ -46,20 +51,27 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get install -y nodejs && \
     rm -rf /var/lib/apt/lists/*
 
+# Chromium Symlink erstellen (für Puppeteer)
+RUN ln -sf /usr/bin/chromium-browser /usr/bin/chromium
+
 # Umgebungsvariablen
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 ENV PATH="/usr/local/bin:$PATH"
 ENV NODE_ENV=production
 
 WORKDIR /app
 
-# Nur package.json kopieren
+# Dependencies installieren
 COPY package.json ./
 RUN npm install --production
 
 # Vorgebautes dist/ kopieren
 COPY dist/ ./dist/
+
+# Health-Check hinzufügen
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD curl -f http://localhost:3001/health || exit 1
 
 EXPOSE 3001
 
