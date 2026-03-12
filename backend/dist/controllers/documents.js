@@ -732,7 +732,7 @@ exports.DocumentController = {
                 day: '2-digit',
             });
             const browser = await puppeteer_1.default.launch({
-                headless: 'shell',
+                headless: true,
                 args: [
                     '--no-sandbox',
                     '--disable-setuid-sandbox',
@@ -741,10 +741,8 @@ exports.DocumentController = {
                     '--disable-web-security',
                     '--disable-features=IsolateOrigins,site-per-process',
                     '--font-render-hinting=none',
-                    '--no-zygote',
-                    '--single-process',
                 ],
-                executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium',
+                executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium-browser',
             });
             const page = await browser.newPage();
             // High-DPI viewport for sharp text rendering
@@ -804,7 +802,12 @@ exports.DocumentController = {
         }
         catch (error) {
             console.error('Error exporting PDF:', error);
-            res.status(500).json({ error: 'Failed to export PDF.' });
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            res.status(500).json({
+                error: 'Failed to export PDF.',
+                details: errorMessage,
+                chromiumPath: process.env.PUPPETEER_EXECUTABLE_PATH || 'not set'
+            });
         }
     },
     // Folder operations
