@@ -50,17 +50,25 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 ENV PATH="/usr/local/bin:$PATH"
+ENV NODE_ENV=production
 
 WORKDIR /app
 
-# Nur package.json kopieren (package-lock.json optional)
+# Dependencies installieren (inkl. devDependencies für Build)
 COPY package.json ./
 RUN npm install
 
+# TypeScript global installieren (für den Fall dass es nicht in dependencies ist)
+RUN npm install -g typescript
+
+# Source Code kopieren
 COPY . .
 
 # TypeScript kompilieren
-RUN npx tsc
+RUN npx tsc || (echo "=== TSC ERROR ===" && cat tsconfig.json && exit 1)
+
+# devDependencies aufräumen (optional - spart Platz)
+# RUN npm prune --production
 
 EXPOSE 3001
 
