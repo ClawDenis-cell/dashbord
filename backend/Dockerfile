@@ -53,13 +53,13 @@ ENV PATH="/usr/local/bin:$PATH"
 
 WORKDIR /app
 
-COPY package.json ./
-RUN npm install
+COPY package.json package-lock.json ./
+RUN npm ci
 
 COPY . .
 
-# TypeScript kompilieren
-RUN npm run build
+# TypeScript kompilieren (explizit mit npx)
+RUN npx tsc
 
 EXPOSE 3001
 
