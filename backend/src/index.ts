@@ -56,7 +56,7 @@ export { app };
 
 // Only start the server when not in test mode
 if (process.env.NODE_ENV !== 'test') {
-  httpServer.listen(PORT, () => {
+  httpServer.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on port ${PORT}`);
   });
 }
