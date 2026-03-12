@@ -64,4 +64,7 @@ EXPOSE 3001
 # ENTRYPOINT vom Base-Image (pandoc/latex) zuruecksetzen
 ENTRYPOINT []
 
-CMD ["npm", "run", "dev"]
+# Build TypeScript and start
+RUN npm run build
+
+CMD ["node", "dist/index.js"]

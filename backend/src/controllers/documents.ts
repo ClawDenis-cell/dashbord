@@ -754,7 +754,7 @@ export const DocumentController = {
       });
 
       const browser = await puppeteer.launch({
-        headless: true,
+        headless: 'shell',
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
@@ -763,8 +763,10 @@ export const DocumentController = {
           '--disable-web-security',
           '--disable-features=IsolateOrigins,site-per-process',
           '--font-render-hinting=none',
+          '--no-zygote',
+          '--single-process',
         ],
-        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
+        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium',
       });
 
       const page = await browser.newPage();
