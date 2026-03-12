@@ -1,7 +1,6 @@
 FROM pandoc/latex:3.1-ubuntu
 
 # Install Node.js 20 und Chromium-Dependencies
-# Hinweis: Ubuntu 24.04 (noble) hat einige Pakete umbenannt (t64-Suffix fuer 64-bit time_t Transition)
 RUN apt-get update && apt-get install -y \
     curl \
     ca-certificates \
@@ -59,12 +58,12 @@ RUN npm install
 
 COPY . .
 
+# TypeScript kompilieren
+RUN npm run build
+
 EXPOSE 3001
 
 # ENTRYPOINT vom Base-Image (pandoc/latex) zuruecksetzen
 ENTRYPOINT []
-
-# Build TypeScript and start
-RUN npm run build
 
 CMD ["node", "dist/index.js"]
