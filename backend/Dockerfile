@@ -61,4 +61,7 @@ COPY . .
 
 EXPOSE 3001
 
+# ENTRYPOINT vom Base-Image (pandoc/latex) zuruecksetzen
+ENTRYPOINT []
+
 CMD ["npm", "run", "dev"]
