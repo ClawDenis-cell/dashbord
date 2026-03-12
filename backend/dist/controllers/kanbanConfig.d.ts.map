@@ -1,0 +1,1 @@
+{"version":3,"file":"kanbanConfig.d.ts","sourceRoot":"","sources":["../../src/controllers/kanbanConfig.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,OAAO,EAAE,QAAQ,EAAE,MAAM,SAAS,CAAC;AAG5C,eAAO,MAAM,sBAAsB;mBACZ,OAAO,OAAO,QAAQ;gBAiBzB,OAAO,OAAO,QAAQ;gBAUtB,OAAO,OAAO,QAAQ;gBAgBtB,OAAO,OAAO,QAAQ;gBAkBtB,OAAO,OAAO,QAAQ;CAczC,CAAC"}
