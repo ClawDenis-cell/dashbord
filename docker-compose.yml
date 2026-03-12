@@ -37,7 +37,7 @@ services:
       dockerfile: Dockerfile
     container_name: dashboard-backend
     environment:
-      NODE_ENV: ${NODE_ENV:-development}
+      NODE_ENV: ${NODE_ENV:-production}
       PORT: 3001
       DB_HOST: postgres
       DB_PORT: 5432
@@ -56,8 +56,6 @@ services:
       pandoc:
         condition: service_completed_successfully
     volumes:
-      - ./backend:/app
-      - /app/node_modules
       - uploads_data:/app/uploads
       - pandoc_tmp:/tmp/pandoc
 
