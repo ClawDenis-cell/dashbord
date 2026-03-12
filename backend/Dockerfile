@@ -53,12 +53,13 @@ ENV PATH="/usr/local/bin:$PATH"
 
 WORKDIR /app
 
-COPY package.json package-lock.json ./
-RUN npm ci
+# Nur package.json kopieren (package-lock.json optional)
+COPY package.json ./
+RUN npm install
 
 COPY . .
 
-# TypeScript kompilieren (explizit mit npx)
+# TypeScript kompilieren
 RUN npx tsc
 
 EXPOSE 3001
