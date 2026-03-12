@@ -54,21 +54,12 @@ ENV NODE_ENV=production
 
 WORKDIR /app
 
-# Dependencies installieren (inkl. devDependencies für Build)
+# Nur package.json kopieren
 COPY package.json ./
-RUN npm install
+RUN npm install --production
 
-# TypeScript global installieren (für den Fall dass es nicht in dependencies ist)
-RUN npm install -g typescript
-
-# Source Code kopieren
-COPY . .
-
-# TypeScript kompilieren
-RUN npx tsc || (echo "=== TSC ERROR ===" && cat tsconfig.json && exit 1)
-
-# devDependencies aufräumen (optional - spart Platz)
-# RUN npm prune --production
+# Vorgebautes dist/ kopieren
+COPY dist/ ./dist/
 
 EXPOSE 3001
 
