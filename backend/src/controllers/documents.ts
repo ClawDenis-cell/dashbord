@@ -732,8 +732,9 @@ export const DocumentController = {
     }
   },
 
-  // PDF Export using Pandoc
+  // PDF Export using Puppeteer (Chromium)
   async exportPdf(req: AuthRequest, res: Response) {
+    let browser;
     try {
       if (!req.userId) return res.status(401).json({ error: 'Not authenticated.' });
       const { id } = req.params;
@@ -744,83 +745,51 @@ export const DocumentController = {
       const doc = await DocumentModel.findById(id);
       if (!doc) return res.status(404).json({ error: 'Document not found.' });
 
-      // Use Pandoc for PDF generation
-      const { spawn } = await import('child_process');
-      
-      const tempDir = '/tmp';
-      const inputFile = `${tempDir}/pdf-export-${Date.now()}.md`;
-      const outputFile = `${tempDir}/pdf-export-${Date.now()}.pdf`;
-      
-      // Add YAML metadata header
-      const markdownWithMeta = `---
-title: "${doc.title}"
-author: ""
-date: "${new Date().toLocaleDateString('de-DE')}"
----
+      const { default: puppeteer } = await import('puppeteer');
 
-${doc.content}`;
+      // Determine Chromium executable path
+      const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || undefined;
 
-      // Write temp input file
-      const fs = await import('fs/promises');
-      await fs.writeFile(inputFile, markdownWithMeta, 'utf-8');
-
-      // Run pandoc command
-      const pandocArgs = [
-        inputFile,
-        '-o', outputFile,
-        '--pdf-engine=pdflatex',
-        '-V', 'geometry:margin=1in',
-        '-V', 'mainfont=Inter',
-        '-V', 'sansfont=Inter',
-        '-V', 'geometry=a4paper',
-      ];
-
-      console.log('Running pandoc with args:', pandocArgs);
-
-      const pandocResult = await new Promise<{ success: boolean; error?: string }>((resolve) => {
-        const pandoc = spawn('pandoc', pandocArgs);
-        let stderr = '';
-        
-        pandoc.stderr.on('data', (data) => {
-          stderr += data.toString();
-        });
-        
-        pandoc.on('close', (code) => {
-          if (code === 0) {
-            resolve({ success: true });
-          } else {
-            resolve({ success: false, error: stderr });
-          }
-        });
-        
-        pandoc.on('error', (err) => {
-          resolve({ success: false, error: err.message });
-        });
+      browser = await puppeteer.launch({
+        headless: true,
+        executablePath,
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-gpu',
+        ],
       });
 
-      // Cleanup input file
-      await fs.unlink(inputFile).catch(() => {});
+      const page = await browser.newPage();
 
-      if (!pandocResult.success) {
-        console.error('Pandoc error:', pandocResult.error);
-        return res.status(500).json({ 
-          error: 'PDF-Export fehlgeschlagen: Pandoc Fehler', 
-          details: pandocResult.error 
-        });
-      }
+      // Reuse the same styled HTML as the HTML export
+      const contentHtml = markdownToHtml(doc.content);
+      const htmlContent = buildHtmlDocument(doc.title, contentHtml);
 
-      // Read and send PDF
-      const pdfBuffer = await fs.readFile(outputFile);
-      await fs.unlink(outputFile).catch(() => {});
+      await page.setContent(htmlContent, { waitUntil: 'networkidle0', timeout: 30000 });
 
+      const pdfBuffer = await page.pdf({
+        format: 'A4',
+        margin: { top: '20mm', right: '15mm', bottom: '25mm', left: '15mm' },
+        printBackground: true,
+      });
+
+      await browser.close();
+      browser = undefined;
+
+      const safeTitle = doc.title.replace(/[^a-zA-Z0-9]/g, '_');
       res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename="${doc.title.replace(/[^a-zA-Z0-9]/g, '_')}.pdf"`);
-      res.send(pdfBuffer);
+      res.setHeader('Content-Disposition', `attachment; filename="${safeTitle}.pdf"`);
+      res.send(Buffer.from(pdfBuffer));
     } catch (error: any) {
+      if (browser) {
+        await browser.close().catch(() => {});
+      }
       console.error('Error exporting PDF:', error);
-      res.status(500).json({ 
-        error: 'PDF-Export fehlgeschlagen.', 
-        details: error?.message || 'Unknown error'
+      res.status(500).json({
+        error: 'PDF-Export fehlgeschlagen.',
+        details: error?.message || 'Unknown error',
       });
     }
   },
