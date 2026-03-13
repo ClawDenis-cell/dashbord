@@ -19,18 +19,6 @@ services:
       timeout: 5s
       retries: 5
 
-  pandoc:
-    build:
-      context: ./backend/pandoc
-      dockerfile: Dockerfile
-    container_name: dashboard-pandoc
-    volumes:
-      - ./backend/templates:/templates:ro
-      - pandoc_tmp:/tmp
-    environment:
-      - PANDOC_VERSION=3.1.11
-    command: ["pandoc", "--version"]
-
   backend:
     build:
       context: ./backend
@@ -46,18 +34,13 @@ services:
       DB_NAME: ${POSTGRES_DB:-dashboard}
       JWT_SECRET: ${JWT_SECRET:-super-secret-jwt-key-change-in-production}
       UPLOAD_DIR: /app/uploads
-      PANDOC_HOST: pandoc
-      PANDOC_PORT: 80
     ports:
       - "3001:3001"
     depends_on:
       postgres:
         condition: service_healthy
-      pandoc:
-        condition: service_completed_successfully
     volumes:
       - uploads_data:/app/uploads
-      - pandoc_tmp:/tmp/pandoc
 
   frontend:
     build:
@@ -72,4 +55,3 @@ services:
 volumes:
   postgres_data:
   uploads_data:
-  pandoc_tmp:
