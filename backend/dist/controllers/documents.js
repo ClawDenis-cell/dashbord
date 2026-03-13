@@ -1,4 +1,37 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -10,7 +43,6 @@ const fs_1 = __importDefault(require("fs"));
 const crypto_1 = __importDefault(require("crypto"));
 const https_1 = __importDefault(require("https"));
 const http_1 = __importDefault(require("http"));
-const puppeteer_1 = __importDefault(require("puppeteer"));
 const UPLOAD_DIR = process.env.UPLOAD_DIR || '/app/uploads';
 // Enhanced markdown to HTML converter for export
 function markdownToHtml(md) {
@@ -712,7 +744,7 @@ exports.DocumentController = {
             res.status(500).json({ error: 'Failed to export document.' });
         }
     },
-    // PDF Export with professional quality
+    // PDF Export using Pandoc
     async exportPdf(req, res) {
         try {
             if (!req.userId)
@@ -724,99 +756,72 @@ exports.DocumentController = {
             const doc = await documents_1.DocumentModel.findById(id);
             if (!doc)
                 return res.status(404).json({ error: 'Document not found.' });
-            const contentHtml = markdownToHtml(doc.content);
-            const htmlContent = buildHtmlDocument(doc.title, contentHtml);
-            const exportDate = new Date().toLocaleDateString('de-DE', {
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
+            // Use Pandoc for PDF generation
+            const { spawn } = await Promise.resolve().then(() => __importStar(require('child_process')));
+            const tempDir = '/tmp';
+            const inputFile = `${tempDir}/pdf-export-${Date.now()}.md`;
+            const outputFile = `${tempDir}/pdf-export-${Date.now()}.pdf`;
+            // Add YAML metadata header
+            const markdownWithMeta = `---
+title: "${doc.title}"
+author: ""
+date: "${new Date().toLocaleDateString('de-DE')}"
+---
+
+${doc.content}`;
+            // Write temp input file
+            const fs = await Promise.resolve().then(() => __importStar(require('fs/promises')));
+            await fs.writeFile(inputFile, markdownWithMeta, 'utf-8');
+            // Run pandoc command
+            const pandocArgs = [
+                inputFile,
+                '-o', outputFile,
+                '--pdf-engine=pdflatex',
+                '-V', 'geometry:margin=1in',
+                '-V', 'mainfont=Inter',
+                '-V', 'sansfont=Inter',
+                '-V', 'geometry=a4paper',
+            ];
+            console.log('Running pandoc with args:', pandocArgs);
+            const pandocResult = await new Promise((resolve) => {
+                const pandoc = spawn('pandoc', pandocArgs);
+                let stderr = '';
+                pandoc.stderr.on('data', (data) => {
+                    stderr += data.toString();
+                });
+                pandoc.on('close', (code) => {
+                    if (code === 0) {
+                        resolve({ success: true });
+                    }
+                    else {
+                        resolve({ success: false, error: stderr });
+                    }
+                });
+                pandoc.on('error', (err) => {
+                    resolve({ success: false, error: err.message });
+                });
             });
-            const browser = await puppeteer_1.default.launch({
-                headless: true,
-                args: [
-                    '--no-sandbox',
-                    '--disable-setuid-sandbox',
-                    '--disable-dev-shm-usage',
-                    '--disable-gpu',
-                    '--disable-web-security',
-                    '--disable-features=IsolateOrigins,site-per-process',
-                    '--font-render-hinting=none',
-                ],
-                executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium-browser',
-            });
-            const page = await browser.newPage();
-            // High-DPI viewport for sharp text rendering
-            await page.setViewport({
-                width: 1200,
-                height: 1600,
-                deviceScaleFactor: 2,
-            });
-            // Load content and wait for network + DOM
-            await page.setContent(htmlContent, {
-                waitUntil: ['networkidle0', 'domcontentloaded'],
-                timeout: 30000,
-            });
-            // Explicitly wait for Google Fonts to finish loading
-            await page.evaluate('document.fonts.ready');
-            // Small extra delay for font rendering to settle
-            await new Promise(resolve => setTimeout(resolve, 300));
-            // Shared font stack for header/footer templates
-            const templateFontStyle = `
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-        font-size: 8.5px;
-        color: #94a3b8;
-        width: 100%;
-        padding: 0 15mm;
-      `;
-            const headerTemplate = `
-        <div style="${templateFontStyle} display: flex; justify-content: space-between; align-items: center;">
-          <span style="font-weight: 500; color: #64748b;">${doc.title.replace(/"/g, '&quot;')}</span>
-          <span>${exportDate}</span>
-        </div>
-      `;
-            const footerTemplate = `
-        <div style="${templateFontStyle} display: flex; justify-content: space-between; align-items: center;">
-          <span>Erstellt mit Dashboard</span>
-          <span>Seite <span class="pageNumber"></span> / <span class="totalPages"></span></span>
-        </div>
-      `;
-            const pdfBuffer = await page.pdf({
-                format: 'A4',
-                printBackground: true,
-                preferCSSPageSize: false,
-                scale: 1,
-                displayHeaderFooter: true,
-                headerTemplate,
-                footerTemplate,
-                margin: {
-                    top: '20mm',
-                    right: '15mm',
-                    bottom: '25mm',
-                    left: '15mm',
-                },
-            });
-            await browser.close();
+            // Cleanup input file
+            await fs.unlink(inputFile).catch(() => { });
+            if (!pandocResult.success) {
+                console.error('Pandoc error:', pandocResult.error);
+                return res.status(500).json({
+                    error: 'PDF-Export fehlgeschlagen: Pandoc Fehler',
+                    details: pandocResult.error
+                });
+            }
+            // Read and send PDF
+            const pdfBuffer = await fs.readFile(outputFile);
+            await fs.unlink(outputFile).catch(() => { });
             res.setHeader('Content-Type', 'application/pdf');
             res.setHeader('Content-Disposition', `attachment; filename="${doc.title.replace(/[^a-zA-Z0-9]/g, '_')}.pdf"`);
-            res.send(Buffer.from(pdfBuffer));
+            res.send(pdfBuffer);
         }
         catch (error) {
             console.error('Error exporting PDF:', error);
-            // Return a helpful error message
-            const errorMessage = error?.message || 'Unknown error';
-            let userMessage = 'PDF-Export fehlgeschlagen.';
-            if (errorMessage.includes('ENOENT') || errorMessage.includes('not found')) {
-                userMessage = 'PDF-Export fehlgeschlagen: Chromium nicht gefunden. Bitte installiere chromium-browser.';
-            }
-            else if (errorMessage.includes('timeout')) {
-                userMessage = 'PDF-Export fehlgeschlagen: Zeitüberschreitung. Bitte versuche es erneut.';
-            }
-            else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
-                userMessage = 'PDF-Export fehlgeschlagen: Netzwerkfehler.';
-            }
             res.status(500).json({
-                error: userMessage,
-                details: errorMessage,
+                error: 'PDF-Export fehlgeschlagen.',
+                details: error?.message || 'Unknown error'
             });
         }
     },
