@@ -832,13 +832,24 @@ export const DocumentController = {
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="${doc.title.replace(/[^a-zA-Z0-9]/g, '_')}.pdf"`);
       res.send(Buffer.from(pdfBuffer));
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error exporting PDF:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      // Return a helpful error message
+      const errorMessage = error?.message || 'Unknown error';
+      let userMessage = 'PDF-Export fehlgeschlagen.';
+      
+      if (errorMessage.includes('ENOENT') || errorMessage.includes('not found')) {
+        userMessage = 'PDF-Export fehlgeschlagen: Chromium nicht gefunden. Bitte installiere chromium-browser.';
+      } else if (errorMessage.includes('timeout')) {
+        userMessage = 'PDF-Export fehlgeschlagen: Zeitüberschreitung. Bitte versuche es erneut.';
+      } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+        userMessage = 'PDF-Export fehlgeschlagen: Netzwerkfehler.';
+      }
+      
       res.status(500).json({ 
-        error: 'Failed to export PDF.', 
+        error: userMessage, 
         details: errorMessage,
-        chromiumPath: process.env.PUPPETEER_EXECUTABLE_PATH || 'not set'
       });
     }
   },

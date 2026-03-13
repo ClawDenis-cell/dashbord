@@ -204,11 +204,27 @@ export const EditorPage: React.FC = () => {
     if (!id) return;
     try {
       const res = await documentsApi.exportPdf(id);
-      // Check if response is actually a PDF (not an error response converted to blob)
-      const contentType = res.headers['content-type'] || '';
-      if (!contentType.includes('application/pdf')) {
-        throw new Error(`Expected PDF but got ${contentType}`);
+      
+      // Check if response data is a valid PDF by checking the first bytes
+      // PDF files start with "%PDF-"
+      const firstBytes = new Uint8Array(res.data).slice(0, 5);
+      const pdfMagic = String.fromCharCode(...firstBytes);
+      
+      if (pdfMagic !== '%PDF-') {
+        // Try to parse as JSON error response
+        try {
+          const errorText = new TextDecoder().decode(res.data);
+          const errorJson = JSON.parse(errorText);
+          console.error('PDF Export Error:', errorJson);
+          alert(`PDF-Export fehlgeschlagen: ${errorJson.error || errorJson.details || 'Unbekannter Fehler'}`);
+          return;
+        } catch {
+          console.error('PDF Export Error: Invalid response format');
+          alert('PDF-Export fehlgeschlagen: Ungültiges Antwortformat');
+          return;
+        }
       }
+      
       const blob = new Blob([res.data], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -216,9 +232,9 @@ export const EditorPage: React.FC = () => {
       a.download = `${title || 'document'}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
-    } catch {
-      // Fallback to HTML export
-      handleExportHtml();
+    } catch (error) {
+      console.error('PDF Export Error:', error);
+      alert('PDF-Export fehlgeschlagen. Bitte versuche es erneut oder nutze den HTML-Export.');
     }
   };
 
