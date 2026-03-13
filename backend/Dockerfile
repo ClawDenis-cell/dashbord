@@ -1,10 +1,13 @@
 FROM pandoc/latex:3.1-ubuntu
 
-# Install Node.js 20 und Chromium-Dependencies
+# Install Node.js 20 und Chromium
 RUN apt-get update && apt-get install -y \
     curl \
     ca-certificates \
-    chromium-browser \
+    wget \
+    gnupg \
+    # Chromium installation
+    chromium \
     fonts-liberation \
     libappindicator3-1 \
     libasound2t64 \
@@ -42,7 +45,6 @@ RUN apt-get update && apt-get install -y \
     # Zusätzliche Fonts für PDF-Generierung
     fonts-noto-color-emoji \
     fonts-noto-cjk \
-    fonts-liberation \
     fonts-dejavu-core \
     && rm -rf /var/lib/apt/lists/*
 
@@ -52,11 +54,11 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     rm -rf /var/lib/apt/lists/*
 
 # Chromium Symlink erstellen (für Puppeteer)
-RUN ln -sf /usr/bin/chromium-browser /usr/bin/chromium
+RUN ln -sf /usr/bin/chromium /usr/bin/chromium-browser || true
 
 # Umgebungsvariablen
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 ENV PATH="/usr/local/bin:$PATH"
 ENV NODE_ENV=production
 
